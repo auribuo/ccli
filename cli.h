@@ -2,6 +2,7 @@
  * @file cli.h
  * @brief POSIX compliant cli option parser
  * @author Aurelio Buonomo
+ * @version 1.0.0
  */
 #ifndef CCLI_H
 #define CCLI_H
