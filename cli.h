@@ -6,7 +6,6 @@
  */
 #ifndef CCLI_H
 #define CCLI_H
-#define CCLI_IMPLEMENTATION
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -16,43 +15,43 @@
 #include <unistd.h>
 
 /**
- * @def ARG_NULL
+ * @def CLI_ARG_NULL
  * @brief The NULL argument. Used for termination of the options array.
  */
-#define ARG_NULL 0b0000000000000000
+#define CLI_ARG_NULL 0b0000000000000000
 
 /**
- * @def ARG_REQ_MASK
+ * @def CLI_ARG_REQ_MASK
  * @brief Bitmask for the bit controlling if a option is required.
  */
-#define ARG_REQ_MASK 0b1000000000000000
+#define CLI_ARG_REQ_MASK 0b1000000000000000
 
 /**
- * @def ARG_POS_MASK
+ * @def CLI_ARG_POS_MASK
  * @brief Bitmask for the bit controlling if a option is positional.
  */
-#define ARG_POS_MASK 0b0100000000000000
+#define CLI_ARG_POS_MASK 0b0100000000000000
 
 /**
- * @def ARG_MAT_MASK
+ * @def CLI_ARG_MAT_MASK
  * @brief Bitmask used internally to check if a option is matched.
  */
-#define ARG_MAT_MASK 0b0010000000000000
+#define CLI_ARG_MAT_MASK 0b0010000000000000
 
 /**
- * @def ARG_TYP_MASK
+ * @def CLI_ARG_TYP_MASK
  * @brief Bitmask for the bits defining the type of the option. See @ref option_type_t.
  */
-#define ARG_TYP_MASK 0b0000000000011111
+#define CLI_ARG_TYP_MASK 0b0000000000011111
 
 /**
- * @def ARG_CMD_MASK
+ * @def CLI_ARG_CMD_MASK
  * @brief Bitmask for the bits controlling the command of a option.
  */
-#define ARG_CMD_MASK 0b0001111111100000
+#define CLI_ARG_CMD_MASK 0b0001111111100000
 
 /**
- * @def ARG_MAKE(typ, req, pos, cmd)
+ * @def CLI_ARG_MAKE(typ, req, pos, cmd)
  * @brief Evaluates to the params field of a @ref option_t.
  * @param typ The type of the option See @ref option_type_t
  * @param req 1 if the option is required, else 0
@@ -71,158 +70,158 @@
  * c = command where 0 = global, 1 = root, n - 2 = index in commands
  * t = type
  */
-#define ARG_MAKE(typ, req, pos, cmd) \
-    ((req << 15) | (pos << 14) | (cmd << 5) | typ) & (~ARG_MAT_MASK)
+#define CLI_ARG_MAKE(typ, req, pos, cmd) \
+    ((req << 15) | (pos << 14) | (cmd << 5) | typ) & (~CLI_ARG_MAT_MASK)
 
 /**
- * @def ARG_MAKE_GLOBAL(typ, req, pos)
+ * @def CLI_ARG_MAKE_GLOBAL(typ, req, pos)
  * @brief Evaluates to the params field of a global @ref option_t.
  * @param typ The type of the option See @ref option_type_t
  * @param req 1 if the option is required, else 0
  * @param pos 1 if the option is positional, else 0
  */
-#define ARG_MAKE_GLOBAL(typ, req, pos) ARG_MAKE(typ, req, pos, 0)
+#define CLI_ARG_MAKE_GLOBAL(typ, req, pos) CLI_ARG_MAKE(typ, req, pos, 0)
 
 /**
- * @def ARG_MAKE_ROOT(typ, req, pos)
+ * @def CLI_ARG_MAKE_ROOT(typ, req, pos)
  * @brief Evaluates to the params field of a root @ref option_t.
  * @param typ The type of the option See @ref option_type_t
  * @param req 1 if the option is required, else 0
  * @param pos 1 if the option is positional, else 0
  */
-#define ARG_MAKE_ROOT(typ, req, pos) ARG_MAKE(typ, req, pos, 1)
+#define CLI_ARG_MAKE_ROOT(typ, req, pos) CLI_ARG_MAKE(typ, req, pos, 1)
 
 /**
- * @def ARG_MAKE_CMD(typ, req, pos, cmd)
+ * @def CLI_ARG_MAKE_CMD(typ, req, pos, cmd)
  * @brief Evaluates to the params field of a @ref option_t associated to the command with the given index.
  * @param typ The type of the option See @ref option_type_t
  * @param req 1 if the option is required, else 0
  * @param pos 1 if the option is positional, else 0
  * @param cmd The index of the command in the commands array
  */
-#define ARG_MAKE_CMD(typ, req, pos, cmd) ARG_MAKE(typ, req, pos, (cmd + 2))
+#define CLI_ARG_MAKE_CMD(typ, req, pos, cmd) CLI_ARG_MAKE(typ, req, pos, (cmd + 2))
 
 /**
- * @def ARG_TYPE(arg)
+ * @def CLI_ARG_TYPE(arg)
  * @brief Evaluates to the type of the given option.
  * @param arg The params field of the @ref option_t
  */
-#define ARG_TYPE(arg) (arg & ARG_TYP_MASK)
+#define CLI_ARG_TYPE(arg) (arg & CLI_ARG_TYP_MASK)
 
 /**
- * @def ARG_CMD(arg)
+ * @def CLI_ARG_CMD(arg)
  * @brief Evaluates to the cmd part of the given option.
  * @param arg The params field of the @ref option_t
  */
-#define ARG_CMD(arg) ((arg & ARG_CMD_MASK) >> 5)
+#define CLI_ARG_CMD(arg) ((arg & CLI_ARG_CMD_MASK) >> 5)
 
 /**
- * @def ARG_CMD_IDX(arg)
+ * @def CLI_ARG_CMD_IDX(arg)
  * @brief Evaluates to the index in the command field of the given option. Using it on global or root options results in an invalid index.
  * @param arg The params field of the @ref option_t
  */
-#define ARG_CMD_IDX(arg) ((arg & ARG_CMD_MASK) >> 5) - 2
+#define CLI_ARG_CMD_IDX(arg) ((arg & CLI_ARG_CMD_MASK) >> 5) - 2
 
 /**
- * @def ARG_GLOBAL(arg)
+ * @def CLI_ARG_GLOBAL(arg)
  * @brief Evaluates whether the option is global or not.
  * @param arg The params field of the @ref option_t
  */
-#define ARG_GLOBAL(arg) ((arg & ARG_CMD_MASK) >> 5) == 0
+#define CLI_ARG_GLOBAL(arg) ((arg & CLI_ARG_CMD_MASK) >> 5) == 0
 
 /**
- * @def ARG_ROOT(arg)
+ * @def CLI_ARG_ROOT(arg)
  * @brief Evaluates whether the option is a root flag or not.
  * @param arg The params field of the @ref option_t
  */
-#define ARG_ROOT(arg) ((arg & ARG_CMD_MASK) >> 5) == 1
+#define CLI_ARG_ROOT(arg) ((arg & CLI_ARG_CMD_MASK) >> 5) == 1
 
 /**
- * @def ARG_REQUIRED(arg)
+ * @def CLI_ARG_REQUIRED(arg)
  * @brief Evaluates whether the option is required or not.
  * @param arg The params field of the @ref option_t
  */
-#define ARG_REQUIRED(arg) (arg & ARG_REQ_MASK) == ARG_REQ_MASK
+#define CLI_ARG_REQUIRED(arg) (arg & CLI_ARG_REQ_MASK) == CLI_ARG_REQ_MASK
 
 /**
- * @def ARG_POSITIONAL(arg)
+ * @def CLI_ARG_POSITIONAL(arg)
  * @brief Evaluates whether the option is positional or not.
  * @param arg The params field of the @ref option_t
  */
-#define ARG_POSITIONAL(arg) (arg & ARG_POS_MASK) == ARG_POS_MASK
+#define CLI_ARG_POSITIONAL(arg) (arg & CLI_ARG_POS_MASK) == CLI_ARG_POS_MASK
 
 /**
- * @def ARG_MATCHED(arg)
+ * @def CLI_ARG_MATCHED(arg)
  * @brief Evaluates whether the option is matched or not.
  * @param arg The params field of the @ref option_t
  */
-#define ARG_MATCHED(arg) (arg & ARG_MAT_MASK) == ARG_MAT_MASK
+#define CLI_ARG_MATCHED(arg) (arg & CLI_ARG_MAT_MASK) == CLI_ARG_MAT_MASK
 
 /**
- * @def ARG_SET_MATCHED(arg)
+ * @def CLI_ARG_SET_MATCHED(arg)
  * @brief Evaluates to the same params field but with the matched option bit set.
  * @param arg The params field of the @ref option_t
  */
-#define ARG_SET_MATCHED(arg) (arg | ARG_MAT_MASK)
+#define CLI_ARG_SET_MATCHED(arg) (arg | CLI_ARG_MAT_MASK)
 
 /**
  * @brief Union holding all possible data of a parsed option.
  */
-typedef union opt_data_u {
+typedef union {
     char *str_data;     /**< The string data of the option */
     int64_t num_data;   /**< The numer data of the option */
     uint64_t unum_data; /**< The unsigned data of the option */
     bool bool_data;     /**< The boolean data of the option */
-} opt_data_t;
+} cli_data;
 
 /**
  * @brief Represents a single option of the cli.
  */
-typedef struct option_s {
-    char short_arg;   /**< The shorthand version of the option. Set to 0 if not required */
-    char *long_arg;   /**< The long version and name of the option. Required */
-    uint16_t params;  /**< The params field of the option. See @ref ARG_MAKE */
-    opt_data_t *data; /**< The data field of the option. After parsing holds the data passed down in the cli. Accessing fields not matching the type of the option is undefined behaviour */
-    char *desc;       /**< Optional description to print in the help menu */
-    char *arg_desc;   /**< Description/name of the parameter of the option. Only applicable to string and boolean options*/
-} option_t;
+typedef struct {
+    char short_arg;  /**< The shorthand version of the option. Set to 0 if not required */
+    char *long_arg;  /**< The long version and name of the option. Required */
+    uint16_t params; /**< The params field of the option. See @ref ARG_MAKE */
+    cli_data *data;  /**< The data field of the option. After parsing holds the data passed down in the cli. Accessing fields not matching the type of the option is undefined behaviour */
+    char *desc;      /**< Optional description to print in the help menu */
+    char *arg_desc;  /**< Description/name of the parameter of the option. Only applicable to string and boolean options*/
+} cli_option;
 
 /**
  * @brief Represents a cli command.
  */
-typedef struct command_s {
+typedef struct {
     char *command; /**< The name of the command. Required */
     char *desc;    /**< Optional description to print in the help menu */
-} command_t;
+} cli_command;
 
 /**
  * @brief Represents a single exclusion between two options.
  *
  * Note: This system is a bit janky at the moment and only really works between two options that appear only once in all exclusions.
  */
-typedef struct exclusion_s {
+typedef struct {
     char *one;      /**< Name of the first option */
     char *other;    /**< Name of the second option */
     bool satisfied; /**< Indicates whether the exclusion is satisfied */
-} exclusion_t;
+} cli_exclusion;
 
 /**
  * @brief Represents all valid option types. The value of each field matches the value in the type portion in the params field of the option.
  */
-typedef enum option_type_e {
+typedef enum {
     boolean = 1, /**< Indicates a boolean (on/off) option */
     string = 2,  /**< Indicates a string option */
     number = 4,  /**< Indicates a integer option */
     unumber = 8, /**< Indicates an unsigned integer option */
-} option_type_t;
+} cli_option_type;
 
 /**
  * @brief Represents an example to print in the help menu.
  */
-typedef struct example_s {
+typedef struct {
     char *options;     /**< Only the options the cli has to be run with */
     char *description; /**< The description of the action performed */
-} example_t;
+} cli_example;
 
 #ifdef CCLI_IMPLEMENTATION
 #include <errno.h>
@@ -470,16 +469,16 @@ int64_t cli_stridx(const char *s, char c) {
 /**
  * @brief Help option. Always present.
  */
-const option_t help_opt = {'h', "help", ARG_MAKE_GLOBAL(boolean, false, false), NULL, "Show this help menu", NULL};
+const cli_option help_opt = {'h', "help", CLI_ARG_MAKE_GLOBAL(boolean, false, false), NULL, "Show this help menu", NULL};
 
 /**
  * @brief Represents all possible types of short options.
  */
-typedef enum short_opt_type_e {
+typedef enum {
     none,     /**< Not a short option */
     single,   /**< Single option */
     multiple, /**< Multiple in one */
-} short_opt_type_t;
+} cli_short_opt_type;
 
 /**
  * @brief Returns whether opt is a null (terminating) option.
@@ -487,7 +486,7 @@ typedef enum short_opt_type_e {
  * @return True if the option is considered a terminating option else false
  * @note The function checks for the params field to be @ref ARG_NULL
  */
-bool _is_opt_null(option_t opt) { return opt.params == ARG_NULL; }
+bool _cli_is_opt_null(cli_option opt) { return opt.params == CLI_ARG_NULL; }
 
 /**
  * @brief Returns whether cmd is a null (terminating) command.
@@ -495,7 +494,7 @@ bool _is_opt_null(option_t opt) { return opt.params == ARG_NULL; }
  * @return True if the command is considered a terminating option else false
  * @note The function checks for the command field to be NULL
  */
-bool _is_cmd_null(command_t cmd) { return cmd.command == NULL; }
+bool _cli_is_cmd_null(cli_command cmd) { return cmd.command == NULL; }
 
 /**
  * @brief Calculates the length of a zero-terminated @ref option_t array.
@@ -503,13 +502,13 @@ bool _is_cmd_null(command_t cmd) { return cmd.command == NULL; }
  * @return The length of the array excluding the zero-terminator
  * @note Not having a zero-terminator can lead to undefined behaviour
  */
-size_t _opt_len(option_t *options) {
+size_t _cli_opt_len(cli_option *options) {
     if (options == NULL) {
         return 0;
     }
     size_t idx = 0;
-    option_t opt;
-    while (!_is_opt_null(opt = options[idx++]))
+    cli_option opt;
+    while (!_cli_is_opt_null(opt = options[idx++]))
         ;
     return idx - 1;
 }
@@ -520,13 +519,13 @@ size_t _opt_len(option_t *options) {
  * @return The length of the array excluding the zero-terminator
  * @note Not having a zero-terminator can lead to undefined behaviour
  */
-size_t _cmd_len(command_t *commands) {
+size_t _cli_cmd_len(cli_command *commands) {
     if (commands == NULL) {
         return 0;
     }
     size_t idx = 0;
-    command_t cmd;
-    while (!_is_cmd_null(cmd = commands[idx++]))
+    cli_command cmd;
+    while (!_cli_is_cmd_null(cmd = commands[idx++]))
         ;
     return idx - 1;
 }
@@ -535,13 +534,13 @@ size_t _cmd_len(command_t *commands) {
  * @brief Validates a zero-terminated @ref option_t array. cli_panics if options are not valid
  * @param options The zero-terminated array of @ref option_t
  */
-void _validate_options(option_t *options) {
-    for (size_t i = 0; i < _opt_len(options); i++) {
-        option_t opt = options[i];
+void _cli_validate_options(cli_option *options) {
+    for (size_t i = 0; i < _cli_opt_len(options); i++) {
+        cli_option opt = options[i];
         if (opt.long_arg == NULL) {
             cli_panicf("Invalid option at index %lu. Long option is always required!", i);
         }
-        if (ARG_TYPE(opt.params) != boolean && !(ARG_POSITIONAL(opt.params)) && opt.arg_desc == NULL) {
+        if (CLI_ARG_TYPE(opt.params) != boolean && !(CLI_ARG_POSITIONAL(opt.params)) && opt.arg_desc == NULL) {
             cli_panicf("Invalid option %s. If option is not boolean arg_desc is required!", opt.long_arg);
         }
     }
@@ -554,13 +553,13 @@ void _validate_options(option_t *options) {
  * @param command Name of the current command
  * @return True if the option is relevant, else false
  */
-bool _arg_relevant(uint32_t arg_opt, command_t *commands, char *command) {
-    if (ARG_GLOBAL(arg_opt)) {
+bool _cli_arg_relevant(uint32_t arg_opt, cli_command *commands, char *command) {
+    if (CLI_ARG_GLOBAL(arg_opt)) {
         return true;
-    } else if (ARG_ROOT(arg_opt)) {
+    } else if (CLI_ARG_ROOT(arg_opt)) {
         return command == NULL;
     }
-    return cli_streq(commands[ARG_CMD_IDX(arg_opt)].command, command);
+    return cli_streq(commands[CLI_ARG_CMD_IDX(arg_opt)].command, command);
 }
 
 /**
@@ -570,12 +569,12 @@ bool _arg_relevant(uint32_t arg_opt, command_t *commands, char *command) {
  * @param command Name of the current command
  * @return The length of the longest option name + arg_desc
  */
-size_t _max_long_arg_len(option_t *options, command_t *commands, char *command) {
+size_t _cli_max_long_arg_len(cli_option *options, cli_command *commands, char *command) {
     size_t max = 4; // Hardcoded to the word "help"
 
-    for (size_t i = 0; i < _opt_len(options); i++) {
-        option_t opt = options[i];
-        if (!_arg_relevant(opt.params, commands, command)) {
+    for (size_t i = 0; i < _cli_opt_len(options); i++) {
+        cli_option opt = options[i];
+        if (!_cli_arg_relevant(opt.params, commands, command)) {
             continue;
         }
         if (opt.long_arg == NULL) {
@@ -600,10 +599,10 @@ size_t _max_long_arg_len(option_t *options, command_t *commands, char *command) 
  * @param command Name of the current command
  * @return The amount of positional options
  */
-size_t _pos_args_len(option_t *options, command_t *commands, char *command) {
+size_t _cli_pos_args_len(cli_option *options, cli_command *commands, char *command) {
     size_t count = 0;
-    for (size_t i = 0; i < _opt_len(options); i++) {
-        if (ARG_POSITIONAL(options[i].params) && _arg_relevant(options[i].params, commands, command)) {
+    for (size_t i = 0; i < _cli_opt_len(options); i++) {
+        if (CLI_ARG_POSITIONAL(options[i].params) && _cli_arg_relevant(options[i].params, commands, command)) {
             count++;
         }
     }
@@ -618,10 +617,10 @@ size_t _pos_args_len(option_t *options, command_t *commands, char *command) {
  * @param argv The argv array
  * @param examples Optional zero-terminated array of examples
  */
-void cli_help(command_t *commands, char *command, option_t *options, char *argv[], example_t *examples) {
-    uint32_t max_len = _max_long_arg_len(options, commands, command);
-    size_t num_options = _opt_len(options);
-    size_t num_commands = _cmd_len(commands);
+void cli_help(cli_command *commands, char *command, cli_option *options, char *argv[], cli_example *examples) {
+    uint32_t max_len = _cli_max_long_arg_len(options, commands, command);
+    size_t num_options = _cli_opt_len(options);
+    size_t num_commands = _cli_cmd_len(commands);
     printf("Usage: \n");
     if (num_commands > 0) {
         if (command == NULL) {
@@ -634,15 +633,15 @@ void cli_help(command_t *commands, char *command, option_t *options, char *argv[
     }
     printf("[options] ");
     for (size_t i = 0; i < num_options; i++) {
-        option_t opt = options[i];
-        if (ARG_POSITIONAL(opt.params) && _arg_relevant(opt.params, commands, command)) {
+        cli_option opt = options[i];
+        if (CLI_ARG_POSITIONAL(opt.params) && _cli_arg_relevant(opt.params, commands, command)) {
             printf("%s ", opt.long_arg);
         }
     }
     if (num_commands > 0 && command == NULL) {
         printf("\n\nAvailable commands:\n");
         for (size_t i = 0; i < num_commands; i++) {
-            command_t cmd = commands[i];
+            cli_command cmd = commands[i];
             char *padded_cmd = (char *)malloc(sizeof(char) * max_len + 1);
             cli_check_alloc(padded_cmd);
             memset(padded_cmd, ' ', max_len);
@@ -657,8 +656,8 @@ void cli_help(command_t *commands, char *command, option_t *options, char *argv[
     }
     printf("\nAvailable options:\n");
     for (size_t i = 0; i < num_options; i++) {
-        option_t opt = options[i];
-        if (ARG_POSITIONAL(opt.params) || !_arg_relevant(opt.params, commands, command)) {
+        cli_option opt = options[i];
+        if (CLI_ARG_POSITIONAL(opt.params) || !_cli_arg_relevant(opt.params, commands, command)) {
             continue;
         }
         char *padded_long;
@@ -701,11 +700,11 @@ void cli_help(command_t *commands, char *command, option_t *options, char *argv[
 
     free(padded_long);
 
-    if (_pos_args_len(options, commands, command) > 0) {
+    if (_cli_pos_args_len(options, commands, command) > 0) {
         printf("\nPositional options:\n");
         for (size_t i = 0; i < num_options; i++) {
-            option_t opt = options[i];
-            if (!(ARG_POSITIONAL(opt.params)) || !_arg_relevant(opt.params, commands, command)) {
+            cli_option opt = options[i];
+            if (!(CLI_ARG_POSITIONAL(opt.params)) || !_cli_arg_relevant(opt.params, commands, command)) {
                 continue;
             }
             char *padded_long;
@@ -723,7 +722,7 @@ void cli_help(command_t *commands, char *command, option_t *options, char *argv[
 
     if (examples != NULL) {
         printf("\nExamples:\n");
-        example_t example;
+        cli_example example;
         size_t idx = 0;
         while ((example = examples[idx++]).options != NULL) {
             printf("%s %s\t%s\n", argv[0], example.options, example.description);
@@ -738,7 +737,7 @@ void cli_help(command_t *commands, char *command, option_t *options, char *argv[
  * @param opt The string of the option to check
  * @return True if the option is a long option, false if not
  */
-bool _is_long_opt(char *opt) {
+bool _cli_is_long_opt(char *opt) {
     size_t len = strlen(opt);
     if (len < 3) {
         return false;
@@ -751,7 +750,7 @@ bool _is_long_opt(char *opt) {
  * @param opt The string of the option to check
  * @return The type of the short option as described in @ref short_opt_type_t
  */
-short_opt_type_t _short_opt_type(char *opt) {
+cli_short_opt_type _cli_short_opt_type(char *opt) {
     size_t len = strlen(opt);
     if (len < 2) {
         return none;
@@ -774,8 +773,8 @@ short_opt_type_t _short_opt_type(char *opt) {
  * @return True if the string is an option, else false
  * @note See @ref _short_opt_type and @ref _is_long_opt
  */
-bool _is_option(char *opt) {
-    return _is_long_opt(opt) || _short_opt_type(opt) != none;
+bool _cli_is_option(char *opt) {
+    return _cli_is_long_opt(opt) || _cli_short_opt_type(opt) != none;
 }
 
 /**
@@ -787,8 +786,8 @@ bool _is_option(char *opt) {
  * @param argc The total length of argv
  * @param argv The argv array
  */
-void _cli_parse_remaining_positionals(option_t *options, command_t *commands, char *command, int argc_idx, int argc, char **argv) {
-    size_t pos_arg_count = _pos_args_len(options, commands, command);
+void _cli_parse_remaining_positionals(cli_option *options, cli_command *commands, char *command, int argc_idx, int argc, char **argv) {
+    size_t pos_arg_count = _cli_pos_args_len(options, commands, command);
     if (argc - argc_idx - 1 > pos_arg_count) {
         cli_fatalf_help(argv[0], "Too many positional arguments: Expected %d got %d", pos_arg_count, argc - argc_idx - 1);
     }
@@ -798,10 +797,10 @@ void _cli_parse_remaining_positionals(option_t *options, command_t *commands, ch
         if (strcmp(arg, "--") == 0 || strcmp(arg, "-") == 0) {
             continue;
         }
-        for (size_t opt_search = 0; opt_search < _opt_len(options); opt_search++) {
-            option_t opt = options[opt_search];
-            if (!(ARG_MATCHED(opt.params)) && ARG_POSITIONAL(opt.params)) {
-                options[opt_search].params = ARG_SET_MATCHED(opt.params);
+        for (size_t opt_search = 0; opt_search < _cli_opt_len(options); opt_search++) {
+            cli_option opt = options[opt_search];
+            if (!(CLI_ARG_MATCHED(opt.params)) && CLI_ARG_POSITIONAL(opt.params)) {
+                options[opt_search].params = CLI_ARG_SET_MATCHED(opt.params);
                 options[opt_search].data->str_data = arg;
             }
         }
@@ -819,7 +818,7 @@ void _cli_parse_remaining_positionals(option_t *options, command_t *commands, ch
  * @return True if the options match, else false
  * @note The function checks if the long_opt with prepended '--' is equal to the given argv_opt
  */
-bool _long_opt_eq(char *argv_opt, char *long_opt) {
+bool _cli_long_opt_eq(char *argv_opt, char *long_opt) {
     if (argv_opt == NULL || long_opt == NULL) {
         return false;
     }
@@ -838,16 +837,16 @@ bool _long_opt_eq(char *argv_opt, char *long_opt) {
  * @param options The zero-terminated array of @ref option_t
  * @param mutual_exclusions The zero-terminated array of @ref exclusion_t to know if two required options are mutually exclusive
  */
-void _check_unmatched(uint8_t cmd_idx, option_t *options, exclusion_t mutual_exclusions[]) {
-    for (size_t opt_search = 0; opt_search < _opt_len(options); opt_search++) {
-        option_t opt = options[opt_search];
-        if (!(ARG_GLOBAL(opt.params)) && ARG_CMD(opt.params) != cmd_idx) {
+void _cli_check_unmatched(const char *bin, uint8_t cmd_idx, cli_option *options, cli_exclusion mutual_exclusions[]) {
+    for (size_t opt_search = 0; opt_search < _cli_opt_len(options); opt_search++) {
+        cli_option opt = options[opt_search];
+        if (!(CLI_ARG_GLOBAL(opt.params)) && CLI_ARG_CMD(opt.params) != cmd_idx) {
             continue;
         }
-        if (!(ARG_MATCHED(opt.params))) {
-            if (ARG_REQUIRED(opt.params)) {
+        if (!(CLI_ARG_MATCHED(opt.params))) {
+            if (CLI_ARG_REQUIRED(opt.params)) {
                 size_t idx = 0;
-                exclusion_t ex;
+                cli_exclusion ex;
                 bool can_proceed = false;
                 if (mutual_exclusions != NULL) {
                     while ((ex = mutual_exclusions[idx++]).one != NULL) {
@@ -860,7 +859,7 @@ void _check_unmatched(uint8_t cmd_idx, option_t *options, exclusion_t mutual_exc
                 if (can_proceed) {
                     continue;
                 }
-                cli_fatalf_help("Missing required argument `%s`", opt.long_arg);
+                cli_fatalf_help(bin, "Missing required argument `%s`", opt.long_arg);
             }
         }
     }
@@ -875,7 +874,7 @@ void _check_unmatched(uint8_t cmd_idx, option_t *options, exclusion_t mutual_exc
  * @param argv The argv array
  * @param examples Optional zero-terminated array of examples
  */
-void _find_help(command_t *commands, char *command, option_t *options, int argc, char *argv[], example_t *examples) {
+void _cli_find_help(cli_command *commands, char *command, cli_option *options, int argc, char *argv[], cli_example *examples) {
     for (int i = 1; i < argc; i++) {
         char *arg = argv[i];
         if (strcmp(arg, "--") == 0 || strcmp(arg, "-") == 0) {
@@ -894,12 +893,12 @@ void _find_help(command_t *commands, char *command, option_t *options, int argc,
  * @param options The zero-terminated array of @ref option_t
  * @param mutual_exclusions The zero-terminated array of @ref exclusion_t to know if two required options are mutually exclusive
  */
-void _check_mutual_exclusions(uint8_t cmd_idx, option_t *options, exclusion_t mutual_exclusions[]) {
+void _cli_check_mutual_exclusions(const char *bin, uint8_t cmd_idx, cli_option *options, cli_exclusion mutual_exclusions[]) {
     if (mutual_exclusions == NULL) {
         return;
     }
     size_t idx = 0;
-    exclusion_t exclusion;
+    cli_exclusion exclusion;
     while ((exclusion = mutual_exclusions[idx++]).one != NULL) {
         if (exclusion.other == NULL) {
             cli_panic("check_mutual_exclusions: NULL in non NULL exclusion!");
@@ -911,20 +910,20 @@ void _check_mutual_exclusions(uint8_t cmd_idx, option_t *options, exclusion_t mu
         bool other_matched = false;
         bool both_required = true;
         bool irrelevant = false;
-        for (int i = 0; i < _opt_len(options); i++) {
-            option_t opt = options[i];
-            if (!(ARG_GLOBAL(opt.params)) && ARG_CMD(opt.params) != cmd_idx && (cli_streq(exclusion.one, opt.long_arg) || cli_streq(exclusion.other, opt.long_arg))) {
+        for (int i = 0; i < _cli_opt_len(options); i++) {
+            cli_option opt = options[i];
+            if (!(CLI_ARG_GLOBAL(opt.params)) && CLI_ARG_CMD(opt.params) != cmd_idx && (cli_streq(exclusion.one, opt.long_arg) || cli_streq(exclusion.other, opt.long_arg))) {
                 irrelevant = true;
                 break;
             }
             if (cli_streq(exclusion.one, opt.long_arg)) {
-                one_matched = ARG_MATCHED(opt.params);
-                both_required &= ARG_REQUIRED(opt.params);
+                one_matched = CLI_ARG_MATCHED(opt.params);
+                both_required &= CLI_ARG_REQUIRED(opt.params);
                 continue;
             }
             if (cli_streq(exclusion.other, opt.long_arg)) {
-                other_matched = ARG_MATCHED(opt.params);
-                both_required &= ARG_REQUIRED(opt.params);
+                other_matched = CLI_ARG_MATCHED(opt.params);
+                both_required &= CLI_ARG_REQUIRED(opt.params);
                 continue;
             }
         }
@@ -932,10 +931,10 @@ void _check_mutual_exclusions(uint8_t cmd_idx, option_t *options, exclusion_t mu
             continue;
         }
         if (one_matched == false && other_matched == false && both_required) {
-            cli_fatalf_help("One of the options `%s` and `%s` is required because they are both required but mutually exclusive", exclusion.one, exclusion.other);
+            cli_fatalf_help(bin, "One of the options `%s` and `%s` is required because they are both required but mutually exclusive", exclusion.one, exclusion.other);
         }
         if (one_matched == true && other_matched == true) {
-            cli_fatalf_help("Options `%s` and `%s` are mutually exclusive. Please provide only one of them", exclusion.one, exclusion.other);
+            cli_fatalf_help(bin, "Options `%s` and `%s` are mutually exclusive. Please provide only one of them", exclusion.one, exclusion.other);
         }
     }
 }
@@ -947,12 +946,12 @@ void _check_mutual_exclusions(uint8_t cmd_idx, option_t *options, exclusion_t mu
  * @param argv The argv array
  * @returns A number <= 1 representing the command which is being run
  */
-size_t _run_command(command_t *commands, int argc, char *argv[]) {
+size_t _run_command(cli_command *commands, int argc, char *argv[]) {
     if (argc == 1) {
         return 1;
     }
-    for (size_t i = 0; i < _cmd_len(commands); i++) {
-        command_t cmd = commands[i];
+    for (size_t i = 0; i < _cli_cmd_len(commands); i++) {
+        cli_command cmd = commands[i];
         if (cli_streq(cmd.command, argv[1])) {
             return i + 2;
         }
@@ -966,7 +965,7 @@ size_t _run_command(command_t *commands, int argc, char *argv[]) {
  * @param arg The string argument passed down to the cli
  * @param cmd_idx The index of the command
  */
-void _cli_parse_equals(option_t *options, char *arg, uint64_t cmd_idx) {
+void _cli_parse_equals(const char *bin, cli_option *options, char *arg, uint64_t cmd_idx) {
     size_t total_len = strlen(arg);
     size_t pre_len = cli_stridx(arg, '=');
     size_t post_len = total_len - pre_len - 1;
@@ -978,24 +977,24 @@ void _cli_parse_equals(option_t *options, char *arg, uint64_t cmd_idx) {
     cli_check_alloc(param);
     memcpy(param, arg + pre_len + 1, post_len);
     param[post_len] = 0;
-    size_t opt_count = _opt_len(options);
+    size_t opt_count = _cli_opt_len(options);
     bool matched_arg = false;
     for (size_t opt_search = 0; opt_search < opt_count; opt_search++) {
-        option_t opt = options[opt_search];
-        if (!(ARG_GLOBAL(opt.params)) && !(ARG_CMD(opt.params) == cmd_idx)) {
+        cli_option opt = options[opt_search];
+        if (!(CLI_ARG_GLOBAL(opt.params)) && !(CLI_ARG_CMD(opt.params) == cmd_idx)) {
             continue;
         }
-        if (_long_opt_eq(opt_str, opt.long_arg) || opt_str[1] == opt.short_arg) {
+        if (_cli_long_opt_eq(opt_str, opt.long_arg) || opt_str[1] == opt.short_arg) {
             matched_arg = true;
-            options[opt_search].params = ARG_SET_MATCHED(opt.params);
+            options[opt_search].params = CLI_ARG_SET_MATCHED(opt.params);
 
-            if (ARG_TYPE(opt.params) == boolean) {
+            if (CLI_ARG_TYPE(opt.params) == boolean) {
                 free(opt_str);
-                cli_fatalf_help("Invalid flag usage. Option `%s` does not expect an argument", opt.long_arg);
+                cli_fatalf_help(bin, "Invalid flag usage. Option `%s` does not expect an argument", opt.long_arg);
             } else {
-                if (ARG_TYPE(opt.params) == string) {
+                if (CLI_ARG_TYPE(opt.params) == string) {
                     options[opt_search].data->str_data = param;
-                } else if (ARG_TYPE(opt.params) == number) {
+                } else if (CLI_ARG_TYPE(opt.params) == number) {
                     char *arg_num_param = param;
                     int64_t arg_num_parse_res = 0;
 
@@ -1003,9 +1002,9 @@ void _cli_parse_equals(option_t *options, char *arg, uint64_t cmd_idx) {
                         options[opt_search].data->num_data = arg_num_parse_res;
                     } else {
                         free(opt_str);
-                        cli_fatalf("Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg_num_param);
+                        cli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg_num_param);
                     }
-                } else if (ARG_TYPE(opt.params) == unumber) {
+                } else if (CLI_ARG_TYPE(opt.params) == unumber) {
                     char *arg_unum_param = param;
                     uint64_t arg_unum_parse_res = 0;
 
@@ -1013,7 +1012,7 @@ void _cli_parse_equals(option_t *options, char *arg, uint64_t cmd_idx) {
                         options[opt_search].data->num_data = arg_unum_parse_res;
                     } else {
                         free(opt_str);
-                        cli_fatalf("Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg_unum_param);
+                        cli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg_unum_param);
                     }
                 } else {
                     cli_panic("Unrecognized type of flag encountered!");
@@ -1023,7 +1022,7 @@ void _cli_parse_equals(option_t *options, char *arg, uint64_t cmd_idx) {
     }
     if (!matched_arg) {
         free(opt_str);
-        cli_fatalf_help("Unknown argument `%s`", arg);
+        cli_fatalf_help(bin, "Unknown argument `%s`", arg);
     }
     free(opt_str);
 }
@@ -1038,19 +1037,24 @@ void _cli_parse_equals(option_t *options, char *arg, uint64_t cmd_idx) {
  * @param examples Optional zero-terminated array of examples
  * @return The name of the command invoked or NULL if the root command was invoked
  */
-char *cli_parse_opts(command_t *commands, option_t *options, int argc, char *argv[], exclusion_t mutual_exclusions[], example_t examples[]) {
-    _validate_options(options);
+char *cli_parse_opts(cli_command *commands, cli_option *options, int argc, char *argv[], cli_exclusion mutual_exclusions[], cli_example examples[]) {
+    if (argc == 0 || argv == NULL) {
+        cli_panic("argc and argv are required");
+    }
+
+    const char *bin = argv[0];
+    _cli_validate_options(options);
     int cmd_idx = _run_command(commands, argc, argv);
     char *command = cmd_idx > 1 ? commands[cmd_idx - 2].command : NULL;
-    _find_help(commands, command, options, argc, argv, examples);
-    size_t opt_count = _opt_len(options);
+    _cli_find_help(commands, command, options, argc, argv, examples);
+    size_t opt_count = _cli_opt_len(options);
     for (int argc_idx = 1 + (cmd_idx > 1); argc_idx < argc; argc_idx++) {
         char *arg = argv[argc_idx];
 
         bool matched_arg = false;
 
-        bool is_long = _is_long_opt(arg);
-        short_opt_type_t short_opt = _short_opt_type(arg);
+        bool is_long = _cli_is_long_opt(arg);
+        cli_short_opt_type short_opt = _cli_short_opt_type(arg);
         bool is_positional = false;
 
         if (!is_long && short_opt == none) {
@@ -1059,34 +1063,34 @@ char *cli_parse_opts(command_t *commands, option_t *options, int argc, char *arg
 
         if (cli_streq(arg, "--") || cli_streq(arg, "-")) {
             _cli_parse_remaining_positionals(options, commands, command, argc_idx, argc, argv);
-            _check_mutual_exclusions(cmd_idx, options, mutual_exclusions);
-            _check_unmatched(cmd_idx, options, mutual_exclusions);
+            _cli_check_mutual_exclusions(bin, cmd_idx, options, mutual_exclusions);
+            _cli_check_unmatched(bin, cmd_idx, options, mutual_exclusions);
             return cmd_idx == 1 ? NULL : commands[cmd_idx - 2].command;
         }
 
         if (cli_strcontains(arg, '=')) {
-            _cli_parse_equals(options, arg, cmd_idx);
+            _cli_parse_equals(bin, options, arg, cmd_idx);
             continue;
         }
 
         for (size_t opt_search = 0; opt_search < opt_count; opt_search++) {
-            option_t opt = options[opt_search];
-            if (!(ARG_GLOBAL(opt.params)) && !(ARG_CMD(opt.params) == cmd_idx)) {
+            cli_option opt = options[opt_search];
+            if (!(CLI_ARG_GLOBAL(opt.params)) && !(CLI_ARG_CMD(opt.params) == cmd_idx)) {
                 continue;
             }
-            if (is_positional && ARG_POSITIONAL(opt.params)) {
+            if (is_positional && CLI_ARG_POSITIONAL(opt.params)) {
                 matched_arg = true;
-                options[opt_search].params = ARG_SET_MATCHED(opt.params);
+                options[opt_search].params = CLI_ARG_SET_MATCHED(opt.params);
                 options[opt_search].data->str_data = arg;
-            } else if ((is_long && _long_opt_eq(arg, opt.long_arg)) || (short_opt == single && arg[1] == opt.short_arg)) {
+            } else if ((is_long && _cli_long_opt_eq(arg, opt.long_arg)) || (short_opt == single && arg[1] == opt.short_arg)) {
                 matched_arg = true;
-                options[opt_search].params = ARG_SET_MATCHED(opt.params);
+                options[opt_search].params = CLI_ARG_SET_MATCHED(opt.params);
 
-                if (ARG_TYPE(opt.params) == boolean) {
+                if (CLI_ARG_TYPE(opt.params) == boolean) {
                     options[opt_search].data->bool_data = true;
                 } else {
-                    if (argc_idx + 1 >= argc || _is_option(argv[argc_idx + 1])) {
-                        if (ARG_TYPE(opt.params) == number && argc_idx + 1 < argc) {
+                    if (argc_idx + 1 >= argc || _cli_is_option(argv[argc_idx + 1])) {
+                        if (CLI_ARG_TYPE(opt.params) == number && argc_idx + 1 < argc) {
                             char *arg_num_param_maybe = argv[argc_idx + 1];
                             int64_t arg_num_parse_maybe = 0;
 
@@ -1094,49 +1098,49 @@ char *cli_parse_opts(command_t *commands, option_t *options, int argc, char *arg
                                 options[opt_search].data->num_data = arg_num_parse_maybe;
                                 argc_idx++;
                             } else {
-                                cli_fatalf_help("Missing argument: Option `%s` requires an argument but none was given", opt.long_arg);
+                                cli_fatalf_help(bin, "Missing argument: Option `%s` requires an argument but none was given", opt.long_arg);
                             }
-                        } else if (ARG_TYPE(opt.params) == unumber && argc_idx + 1 < argc) {
-                            cli_fatalf_help("Invalid unsigned numerical value for option `%s`: %s", opt.long_arg, argv[argc_idx + 1]);
+                        } else if (CLI_ARG_TYPE(opt.params) == unumber && argc_idx + 1 < argc) {
+                            cli_fatalf_help(bin, "Invalid unsigned numerical value for option `%s`: %s", opt.long_arg, argv[argc_idx + 1]);
                         } else {
-                            cli_fatalf_help("Missing argument: Option `%s` requires an argument but none was given", opt.long_arg);
+                            cli_fatalf_help(bin, "Missing argument: Option `%s` requires an argument but none was given", opt.long_arg);
                         }
-                    } else if (ARG_TYPE(opt.params) == string) {
+                    } else if (CLI_ARG_TYPE(opt.params) == string) {
                         options[opt_search].data->str_data = argv[++argc_idx];
-                    } else if (ARG_TYPE(opt.params) == number) {
+                    } else if (CLI_ARG_TYPE(opt.params) == number) {
                         char *arg_num_param = argv[(++argc_idx)];
                         int64_t arg_num_parse_res = 0;
 
                         if (cli_try_parse_int(arg_num_param, &arg_num_parse_res)) {
                             options[opt_search].data->num_data = arg_num_parse_res;
                         } else {
-                            cli_fatalf("Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg_num_param);
+                            cli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg_num_param);
                         }
-                    } else if (ARG_TYPE(opt.params) == unumber) {
+                    } else if (CLI_ARG_TYPE(opt.params) == unumber) {
                         char *arg_unum_param = argv[(++argc_idx)];
                         uint64_t arg_unum_parse_res = 0;
 
                         if (cli_try_parse_uint(arg_unum_param, &arg_unum_parse_res)) {
                             options[opt_search].data->num_data = arg_unum_parse_res;
                         } else {
-                            cli_fatalf(argv[0], "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg_unum_param);
+                            cli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg_unum_param);
                         }
                     } else {
                         cli_panic("Unrecognized type of flag encountered!");
                     }
                 }
             } else if (!is_long && short_opt == multiple) {
-                cli_fatal(argv[0], "Multiple shorthand options at once are not yet supported");
+                cli_fatal(bin, "Multiple shorthand options at once are not yet supported");
             }
         }
 
         if (!matched_arg) {
-            cli_fatalf_help(argv[0], "Unknown argument `%s`", arg);
+            cli_fatalf_help(bin, "Unknown argument `%s`", arg);
         }
     }
 
-    _check_mutual_exclusions(cmd_idx, options, mutual_exclusions);
-    _check_unmatched(cmd_idx, options, mutual_exclusions);
+    _cli_check_mutual_exclusions(bin, cmd_idx, options, mutual_exclusions);
+    _cli_check_unmatched(bin, cmd_idx, options, mutual_exclusions);
     return cmd_idx == 1 ? NULL : commands[cmd_idx - 2].command;
 }
 #endif

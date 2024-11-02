@@ -16,16 +16,16 @@ before the include:
 Then create you can define your options in the following way:
 
 ```c
-static command_t commands[] = {
+static cli_command commands[] = {
     {"test", "Run the test command"},
     {"version", "Display the version of the app"},
     {0}
 };
 
-static opt_data_t echo_data;
-static opt_data_t stderr_data = {.bool_data = false};
+static cli_data echo_data;
+static cli_data stderr_data = {.bool_data = false};
 
-static option_t options[] = {
+static cli_option options[] = {
     {0, "stderr", ARG_MAKE_GLOBAL(boolean, 0, 0), &stderr_data, "Print to stderr instead of stdout", NULL},
     {'e', "echo", ARG_MAKE_CMD(string, 1, 0, 0), &echo_data, "Echo the value given to this flag", "message"},
     {0}
@@ -33,7 +33,7 @@ static option_t options[] = {
 ```
 
 The array `commands` hold all commands of the application.
-The unions of type `opt_data_t` hold the values
+The unions of type `cli_data` hold the values
 the user passes to all the later defined flags.
 You can set default values by assigning a value to the correct field in the union.
 
