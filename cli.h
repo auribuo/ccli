@@ -6,6 +6,7 @@
  */
 #ifndef CCLI_H
 #define CCLI_H
+#define CCLI_IMPLEMENTATION
 
 #include <stdarg.h>
 #include <stdbool.h>
@@ -848,10 +849,12 @@ void _check_unmatched(uint8_t cmd_idx, option_t *options, exclusion_t mutual_exc
                 size_t idx = 0;
                 exclusion_t ex;
                 bool can_proceed = false;
-                while ((ex = mutual_exclusions[idx++]).one != NULL) {
-                    if (cli_streq(ex.one, opt.long_arg) || cli_streq(ex.other, opt.long_arg)) {
-                        can_proceed = true;
-                        break;
+                if (mutual_exclusions != NULL) {
+                    while ((ex = mutual_exclusions[idx++]).one != NULL) {
+                        if (cli_streq(ex.one, opt.long_arg) || cli_streq(ex.other, opt.long_arg)) {
+                            can_proceed = true;
+                            break;
+                        }
                     }
                 }
                 if (can_proceed) {
