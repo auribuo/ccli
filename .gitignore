@@ -1,3 +1,4 @@
 main*
 vgcore*
 .clangd
+ccli.o
