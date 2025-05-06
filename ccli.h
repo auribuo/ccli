@@ -709,8 +709,7 @@ void ccli__parse_remaining_positionals(ccli_option *options, ccli_command *subco
 }
 
 bool ccli__long_opt_eq(const char *argv_opt, const char *long_opt) {
-    assert(argv_opt[0] == '-' && argv_opt[1] == '-');
-    return ccli_streq(argv_opt + 2, long_opt);
+    return *(argv_opt++) == '-' && *(argv_opt++) == '-' && ccli_streq(argv_opt, long_opt);
 }
 
 void ccli__check_unmatched(const char *bin, uint8_t cmd_idx, ccli_option *options) {
@@ -774,7 +773,7 @@ void ccli__parse_equals(const char *bin, ccli_option *options, char *arg, uint64
         if (!(ccli_option_is_global(opt)) && !(ccli_option_subcmd(opt) == cmd_idx)) {
             continue;
         }
-        if (ccli__long_opt_eq(opt_str, opt.long_arg) || opt_str[1] == opt.short_arg) {
+        if (opt_str[1] == opt.short_arg || ccli__long_opt_eq(opt_str, opt.long_arg)) {
             matched_arg = true;
             ccli_option_set_matched(options[opt_search]);
 
@@ -815,11 +814,11 @@ void ccli__parse_equals(const char *bin, ccli_option *options, char *arg, uint64
             }
         }
     }
-    CCLI_FREE(opt_str);
     CCLI_FREE(param);
     if (!matched_arg) {
-        ccli_fatalf_help(bin, "Unknown argument `%s`", arg);
+        ccli_fatalf_help(bin, "Unknown argument `%s`", opt_str);
     }
+    CCLI_FREE(opt_str);
 }
 
 const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int argc, char *argv[], ccli_example examples[]) {
