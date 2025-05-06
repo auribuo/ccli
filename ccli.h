@@ -1,32 +1,24 @@
-// https://github.com/auribuo/ccli
+// https://github.com/auribuo/ccli - Licensed under MIT. See end of file for the full license text
 //
-// Copyright (c) 2025 Aurelio Buonomo
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
+#ifndef CCLI_H
+#define CCLI_H
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef CCLI_H
-#define CCLI_H
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
+#ifndef CCLI_NORETURN
+#ifdef __cplusplus
+#define CCLI_NORETURN(sig) [[noreturn]] sig
+#else
+#define CCLI_NORETURN(sig) _Noreturn sig
+#endif // __cplusplus
+#endif // !CCLI_NORETURN
 
 #ifndef CCLI_MAX_STR_LEN
 #define CCLI_MAX_STR_LEN 1024
@@ -86,11 +78,18 @@
 #define ccli_scope_root() 1
 #define ccli_scope_subcmd(x) ((x) + 2)
 
+#define ccli_option_term {0, NULL, CCLI_ARG_NULL, NULL, NULL, NULL}
+#define ccli_command_term {NULL, NULL}
+#define ccli_example_term {NULL, NULL}
+
 #define ccli_options(var_name, ...) \
-    ccli_option var_name[] = {__VA_ARGS__, {0}}
+    ccli_option var_name[] = {__VA_ARGS__, ccli_option_term}
 
 #define ccli_commands(var_name, ...) \
-    ccli_command var_name[] = {__VA_ARGS__, {0}}
+    ccli_command var_name[] = {__VA_ARGS__, ccli_command_term}
+
+#define ccli_examples(var_name, ...) \
+    ccli_example var_name[] = {__VA_ARGS__, ccli_example_term}
 
 #define ccli_short_name_helper(name) (#name[0])
 #define ccli_short_name(var) (ccli_short_name_helper(var))
@@ -157,14 +156,14 @@ typedef struct {
     const char *description;
 } ccli_example;
 
-_Noreturn void ccli_panic_loc(const char *file, int line, const char *msg);
-_Noreturn void ccli_panicf_loc(const char *file, int line, const char *msg, ...);
+CCLI_NORETURN(void ccli_panic_loc(const char *file, int line, const char *msg));
+CCLI_NORETURN(void ccli_panicf_loc(const char *file, int line, const char *msg, ...));
 #define ccli_panic(msg) ccli_panic_loc(__FILE__, __LINE__, msg)
 #define ccli_panicf(msg, ...) ccli_panicf_loc(__FILE__, __LINE__, msg, __VA_ARGS__)
 
-_Noreturn void ccli_fatal(const char *bin, const char *msg);
-_Noreturn void ccli_fatalf(const char *bin, const char *format, ...);
-_Noreturn void ccli_fatalf_help(const char *bin, const char *format, ...);
+CCLI_NORETURN(void ccli_fatal(const char *bin, const char *msg));
+CCLI_NORETURN(void ccli_fatalf(const char *bin, const char *format, ...));
+CCLI_NORETURN(void ccli_fatalf_help(const char *bin, const char *format, ...));
 
 #if CCLI_ALLOC == alloca
 #define ccli_check_alloc(ptr)
@@ -210,7 +209,7 @@ const ccli_option help_opt = {'h', "help", ccli_params(ccli_boolean, false, fals
 #include <limits.h>
 #include <stdarg.h>
 
-_Noreturn void ccli_panic_loc(const char *file, int line, const char *msg) {
+CCLI_NORETURN(void ccli_panic_loc(const char *file, int line, const char *msg)) {
     if (msg != NULL) {
         fprintf(CCLI_ERR_STREAM, "%s:%d: cli_panic: %s\n", file, line, msg);
     } else {
@@ -219,7 +218,7 @@ _Noreturn void ccli_panic_loc(const char *file, int line, const char *msg) {
     exit(1);
 }
 
-_Noreturn void ccli_panicf_loc(const char *file, int line, const char *msg, ...) {
+CCLI_NORETURN(void ccli_panicf_loc(const char *file, int line, const char *msg, ...)) {
     va_list argptr;
     va_start(argptr, msg);
 
@@ -232,14 +231,14 @@ _Noreturn void ccli_panicf_loc(const char *file, int line, const char *msg, ...)
     exit(1);
 }
 
-_Noreturn void ccli_fatal(const char *bin, const char *msg) {
+CCLI_NORETURN(void ccli_fatal(const char *bin, const char *msg)) {
     if (msg != NULL) {
         fprintf(CCLI_ERR_STREAM, "%s: %s\n", bin, msg);
     }
     exit(1);
 }
 
-_Noreturn void ccli_fatalf(const char *bin, const char *format, ...) {
+CCLI_NORETURN(void ccli_fatalf(const char *bin, const char *format, ...)) {
     va_list argptr;
     va_start(argptr, format);
 
@@ -252,7 +251,7 @@ _Noreturn void ccli_fatalf(const char *bin, const char *format, ...) {
     exit(1);
 }
 
-_Noreturn void ccli_fatalf_help(const char *bin, const char *format, ...) {
+CCLI_NORETURN(void ccli_fatalf_help(const char *bin, const char *format, ...)) {
     va_list argptr;
     va_start(argptr, format);
 
@@ -544,17 +543,16 @@ void ccli_help(ccli_command *subcommands, const char *subcommand, ccli_option *o
     }
     if (num_commands > 0 && subcommand == NULL) {
         fprintf(CCLI_OK_STREAM, "\n\nAvailable commands:\n");
+        char *padded_cmd = (char *)CCLI_ALLOC(sizeof(char) * max_len + 1);
+        ccli_check_alloc(padded_cmd);
+        padded_cmd[max_len] = 0;
         for (size_t i = 0; i < num_commands; i++) {
             ccli_command cmd = subcommands[i];
-            char *padded_cmd = (char *)CCLI_ALLOC(sizeof(char) * max_len + 1);
-            ccli_check_alloc(padded_cmd);
             memset(padded_cmd, ' ', max_len);
             memcpy(padded_cmd, cmd.command, strlen(cmd.command));
-            padded_cmd[max_len] = 0;
             fprintf(CCLI_OK_STREAM, "\t%s      %s\n", padded_cmd, cmd.desc);
-
-            CCLI_FREE(padded_cmd);
         }
+        CCLI_FREE(padded_cmd);
     } else {
         fputc('\n', CCLI_OK_STREAM);
     }
@@ -592,8 +590,7 @@ void ccli_help(ccli_command *subcommands, const char *subcommand, ccli_option *o
         CCLI_FREE(padded_long);
     }
 
-    char *padded_long;
-    padded_long = (char *)CCLI_ALLOC(sizeof(char) * max_len + 1);
+    char *padded_long = (char *)CCLI_ALLOC(sizeof(char) * max_len + 1);
     ccli_check_alloc(padded_long);
     memset(padded_long, ' ', max_len);
     memcpy(padded_long, help_opt.long_arg, strlen(help_opt.long_arg));
@@ -606,31 +603,49 @@ void ccli_help(ccli_command *subcommands, const char *subcommand, ccli_option *o
 
     if (ccli__pos_args_len(options, subcommands, subcommand) > 0) {
         fprintf(CCLI_OK_STREAM, "\nPositional options:\n");
+        char *padded_long = (char *)CCLI_ALLOC(sizeof(char) * max_len + 1);
+        ccli_check_alloc(padded_long);
+        padded_long[max_len] = 0;
         for (size_t i = 0; i < num_options; i++) {
             ccli_option opt = options[i];
             if (!(ccli_option_is_positional(opt)) || !ccli__arg_relevant(opt, subcommands, subcommand)) {
                 continue;
             }
-            char *padded_long;
-            padded_long = (char *)CCLI_ALLOC(sizeof(char) * max_len + 1);
-            ccli_check_alloc(padded_long);
             memset(padded_long, ' ', max_len);
             memcpy(padded_long, opt.long_arg, strlen(opt.long_arg));
-            padded_long[max_len] = 0;
 
             fprintf(CCLI_OK_STREAM, "\t%s      %s\n", padded_long, opt.desc);
-
-            CCLI_FREE(padded_long);
         }
+        CCLI_FREE(padded_long);
     }
 
-    if (examples != NULL) {
+    if (examples != NULL && examples[0].options != NULL) {
         fprintf(CCLI_OK_STREAM, "\nExamples:\n");
-        ccli_example example;
-        size_t idx = 0;
-        while ((example = examples[idx++]).options != NULL) {
-            fprintf(CCLI_OK_STREAM, "%s %s\t%s\n", argv[0], example.options, example.description);
+        ccli_example example = examples[0];
+        size_t max_len = strlen(example.options);
+        for (size_t i = 0;; ++i) {
+            example = examples[i];
+            if (example.options == NULL || example.description == NULL) {
+                break;
+            }
+            size_t len = strlen(example.options);
+            if (len > max_len) {
+                max_len = len;
+            }
         }
+        char *buf = (char *)CCLI_ALLOC(sizeof(char) * max_len + 2);
+        ccli_check_alloc(buf);
+        buf[max_len + 1] = 0;
+        for (size_t i = 0;; ++i) {
+            example = examples[i];
+            if (example.options == NULL || example.description == NULL) {
+                break;
+            }
+            memset(buf, ' ', max_len + 1);
+            memcpy(buf, example.options, strlen(example.options));
+            fprintf(CCLI_OK_STREAM, "%s %s%s\n", argv[0], buf, example.description);
+        }
+        CCLI_FREE(buf);
     }
 
     fprintf(CCLI_OK_STREAM, "\n\nUse `%s [command] --help` to get help for a specific command\n", argv[0]);
@@ -683,7 +698,7 @@ void ccli__parse_remaining_positionals(ccli_option *options, ccli_command *subco
                 if (strlen(arg) > CCLI_MAX_STR_LEN) {
                     ccli_fatalf(argv[0], "Option %s has a too long string argument. Max allowed is %d", opt.long_arg, CCLI_MAX_STR_LEN);
                 }
-                strcpy(options[opt_search].data, arg);
+                strcpy((char *)options[opt_search].data, arg);
             }
         }
     }
@@ -769,7 +784,7 @@ void ccli__parse_equals(const char *bin, ccli_option *options, char *arg, uint64
                 ccli_fatalf_help(bin, "Invalid flag usage. Option `%s` does not expect an argument", opt.long_arg);
             } else {
                 if (ccli_option_type(opt) == ccli_string) {
-                    strcpy(options[opt_search].data, param);
+                    strcpy((char *)options[opt_search].data, param);
                 } else if (ccli_option_type(opt) == ccli_number) {
                     char *arg_num_param = param;
                     int64_t arg_num_parse_res = 0;
@@ -853,7 +868,7 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
                 if (strlen(arg) > CCLI_MAX_STR_LEN) {
                     ccli_fatalf(bin, "Option %s has a too long string argument. Max allowed is %d", opt.long_arg, CCLI_MAX_STR_LEN);
                 }
-                strcpy(options[opt_search].data, arg);
+                strcpy((char *)options[opt_search].data, arg);
             } else if ((is_long && ccli__long_opt_eq(arg, opt.long_arg)) || (short_opt == ccli_short_single && arg[1] == opt.short_arg)) {
                 matched_arg = true;
                 ccli_option_set_matched(options[opt_search]);
@@ -882,7 +897,7 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
                         if (strlen(arg) > CCLI_MAX_STR_LEN) {
                             ccli_fatalf(bin, "Option %s has a too long string argument. Max allowed is %d", opt.long_arg, CCLI_MAX_STR_LEN);
                         }
-                        strcpy(options[opt_search].data, arg);
+                        strcpy((char *)options[opt_search].data, arg);
                     } else if (ccli_option_type(opt) == ccli_number) {
                         char *arg_num_param = argv[(++argc_idx)];
                         int64_t arg_num_parse_res = 0;
@@ -921,13 +936,14 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
 #ifndef _CCLI_STRIP_PREFIX_GUARD
 #define _CCLI_STRIP_PREFIX_GUARD
 #ifdef CCLI_STRIP_PREFIX
-#define ARG_NULL CCLI_ARG_NULL
-#define ARG_REQ_MASK CCLI_ARG_REQ_MASK
-#define ARG_POS_MASK CCLI_ARG_POS_MASK
-#define ARG_MAT_MASK CCLI_ARG_MAT_MASK
-#define ARG_TYP_MASK CCLI_ARG_TYP_MASK
-#define ARG_CMD_MASK CCLI_ARG_CMD_MASK
-#define params ccli_params
+// These are public but their use is discouraged so we do not strip the prefix
+// #define ARG_NULL CCLI_ARG_NULL
+// #define ARG_REQ_MASK CCLI_ARG_REQ_MASK
+// #define ARG_POS_MASK CCLI_ARG_POS_MASK
+// #define ARG_MAT_MASK CCLI_ARG_MAT_MASK
+// #define ARG_TYP_MASK CCLI_ARG_TYP_MASK
+// #define ARG_CMD_MASK CCLI_ARG_CMD_MASK
+// #define params ccli_params
 #define option_type ccli_option_type
 #define option_subcmd ccli_option_subcmd
 #define option_subcmd_idx ccli_option_subcmd_idx
@@ -943,6 +959,7 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
 #define scope_subcmd ccli_scope_subcmd
 #define options ccli_options
 #define commands ccli_commands
+#define examples ccli_examples
 #define short_name_helper ccli_short_name_helper
 #define short_name ccli_short_name
 #define option_bool_var_p ccli_option_bool_var_p
@@ -978,22 +995,46 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
 #define stridx ccli_stridx
 // #define help ccli_help // not good redefine tbh.
 #define parse_opts ccli_parse_opts
-#define _opt_len ccli__opt_len
-#define _cmd_len ccli__cmd_len
-#define _validate_options ccli__validate_options
-#define _arg_relevant ccli__arg_relevant
-#define _max_long_arg_len ccli__max_long_arg_len
-#define _pos_args_len ccli__pos_args_len
-#define _is_long_opt ccli__is_long_opt
-#define _short_opt_kind ccli__short_opt_kind
-#define _is_option ccli__is_option
-#define _parse_remaining_positionals ccli__parse_remaining_positionals
-#define _long_opt_eq ccli__long_opt_eq
-#define _check_unmatched ccli__check_unmatched
-#define _find_help ccli__find_help
-#define _run_command ccli__run_command
-#define _parse_equals ccli__parse_equals
+// Do not redefine private apis
+// #define _opt_len ccli__opt_len
+// #define _cmd_len ccli__cmd_len
+// #define _validate_options ccli__validate_options
+// #define _arg_relevant ccli__arg_relevant
+// #define _max_long_arg_len ccli__max_long_arg_len
+// #define _pos_args_len ccli__pos_args_len
+// #define _is_long_opt ccli__is_long_opt
+// #define _short_opt_kind ccli__short_opt_kind
+// #define _is_option ccli__is_option
+// #define _parse_remaining_positionals ccli__parse_remaining_positionals
+// #define _long_opt_eq ccli__long_opt_eq
+// #define _check_unmatched ccli__check_unmatched
+// #define _find_help ccli__find_help
+// #define _run_command ccli__run_command
+// #define _parse_equals ccli__parse_equals
 #endif // CCLI_STRIP_PREFIX
 #endif // !_CCLI_STRIP_PREFIX_GUARD
 #endif // CCLI_IMPLEMENTATION
+#ifdef __cplusplus
+}
+#endif // __cplusplus
 #endif // CCLI_H
+//
+// Copyright (c) 2025 Aurelio Buonomo
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
