@@ -2,70 +2,47 @@
 
 ## Usage
 
-To use the header just include it where you want to use it.
-
-By default only the struct and macro definitions are exposed.
-To include the argument parser define the `CCLI_IMPLEMENTATION` macro
-before the include:
-
 ```c
-#define CCLI_IMPLEMENTATION
-#include "cli.h"
+#define CCLI_IMPLEMENTATION // Needed for the implementation
+#define CCLI_STRIP_PREFIX   // Optional to remove prefixes
+#include "ccli.h"
+
+// Just declare your flags here. You can also construct the options array in main if you want
+bool warn = false;
+long timeout = 0;
+char iface[CCLI_MAX_STR_LEN] = "eth0";
+
+bool silent = false;
+
+// Here you can declare the subcommands
+// The array must be {0} terminated, this macro does that for you
+commands(commands, {"run", "Run it"});
+
+// Define here you options. The first parameter is the name of the array
+// The array must be {0} terminated, this macro does that for you
+options(options,
+        option_bool_var(warn, "Enable warnings", false, false, scope_global()),
+        option_int_var_p(timeout, "Set timeout", "sec", true, false, scope_global()),
+        option_string_var_p(iface, "Set interface", "name", false, false, scope_global()),
+        option_bool_var_pc('q', silent, "Enable silent output", false, false, scope_subcmd(0)));
+
+examples(examples,
+         {"-t 10 --interface wlo1", "Set the timeout to 10s and override the default interface with wlo1"},
+         {"-t 10 --warn", "Set the timeout to 10s and enable warnings"});
+
+int main(int argc, char **argv) {
+    // This parses the arguments and writes the parsed values into the given pointers and returns the subcommand or null if none was provided
+    // The function exits with an error message if something went wrong.
+    // You can control the output streams using CCLI_OK_STREAM for the help menu and CCLI_ERR_STREAM for all the error messages
+    // If the first argument is not a flag it will be treated as a subcommand. This will be returned by parse_opts
+    const char *subcmd = parse_opts(commands, options, argc, argv, examples);
+
+    printf("subcmd = %s\n", subcmd);
+    printf("warn (%s)\n", warn ? "true" : "false");
+    printf("timeout (%ld)\n", timeout);
+    printf("interface (%s)\n", iface);
+}
 ```
-
-Then create you can define your options in the following way:
-
-```c
-static cli_command commands[] = {
-    {"test", "Run the test command"},
-    {"version", "Display the version of the app"},
-    {0}
-};
-
-static cli_data echo_data;
-static cli_data stderr_data = {.bool_data = false};
-
-static cli_option options[] = {
-    {0, "stderr", ARG_MAKE_GLOBAL(boolean, 0, 0), &stderr_data, "Print to stderr instead of stdout", NULL},
-    {'e', "echo", ARG_MAKE_CMD(string, 1, 0, 0), &echo_data, "Echo the value given to this flag", "message"},
-    {0}
-};
-```
-
-The array `commands` hold all commands of the application.
-The unions of type `cli_data` hold the values
-the user passes to all the later defined flags.
-You can set default values by assigning a value to the correct field in the union.
-
-Then you are ready to define all the options. The `options` array holds all the options
-across all the commands in the application.
-
-An option is a struct holding the following information, in order:
-- The short form of the flag
-- The long form and name of the flag. Required
-- The parameters of the flag. Check out the documentation of the macros
-- A pointer to the union to save the data to
-- An optional description of the flag.
-- The name of the argument to a string|number|unumber flag. Required or `NULL` if the flag is `boolean`
-
-Once the options are defined you can call the `cli_parse_opts` funtion in your program.
-The function returns the string value of the command that has been called or `NULL` if no command was invoked.
-
-## Documentation
-
-Currently the only available documentation is the code itself.
-
-All of the function in the header are documented.
-
-More in-depth docuementation might come in the future.
-
-## Api changes
-
-The project is fairly new. It started as a part of an university project
-of mine. I decied to extrapolate the code and make it available on GitHub.
-
-I will change some of the apis to make working with the library easier
-and to avoid potential naming conflicts.
 
 ## License
 
