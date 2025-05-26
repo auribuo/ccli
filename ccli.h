@@ -680,6 +680,7 @@ bool ccli__is_option(char *opt) {
 }
 
 void ccli__parse_remaining_positionals(ccli_option *options, ccli_command *subcommands, const char *subcommand, int argc_idx, int argc, char **argv) {
+    const char* bin = argv[0];
     size_t pos_arg_count = ccli__pos_args_len(options, subcommands, subcommand);
     if ((size_t)(argc - argc_idx - 1) > pos_arg_count) {
         ccli_fatalf_help(argv[0], "Too many positional arguments: Expected %d got %d", pos_arg_count, argc - argc_idx - 1);
@@ -695,10 +696,38 @@ void ccli__parse_remaining_positionals(ccli_option *options, ccli_command *subco
             ccli_option opt = options[opt_search];
             if (!(ccli_option_is_matched(opt)) && ccli_option_is_positional(opt)) {
                 ccli_option_set_matched(options[opt_search]);
-                if (strlen(arg) > CCLI_MAX_STR_LEN) {
-                    ccli_fatalf(argv[0], "Option %s has a too long string argument. Max allowed is %d", opt.long_arg, CCLI_MAX_STR_LEN);
+                switch (ccli_option_type(opt)) {
+                case ccli_boolean: {
+                    *((bool *)options[opt_search].data) = true;
+                } break;
+                case ccli_string: {
+                    if (strlen(arg) > CCLI_MAX_STR_LEN) {
+                        ccli_fatalf(bin, "Option %s has a too long string argument. Max allowed is %d", opt.long_arg, CCLI_MAX_STR_LEN);
+                    }
+                    strcpy((char *)options[opt_search].data, arg);
+                } break;
+                case ccli_number: {
+                    int64_t arg_num_parse_res = 0;
+
+                    if (ccli_try_parse_int(arg, &arg_num_parse_res)) {
+                        *((int64_t *)options[opt_search].data) = arg_num_parse_res;
+                    } else {
+                        ccli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg);
+                    }
+                } break;
+                case ccli_unumber: {
+                    uint64_t arg_unum_parse_res = 0;
+
+                    if (ccli_try_parse_uint(arg, &arg_unum_parse_res)) {
+                        *((uint64_t *)options[opt_search].data) = arg_unum_parse_res;
+                    } else {
+                        ccli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg);
+                    }
+                } break;
+                default: {
+                    ccli_panic("Unrecognized type of flag encountered!");
+                } break;
                 }
-                strcpy((char *)options[opt_search].data, arg);
             }
         }
     }
@@ -864,10 +893,38 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
             if (is_positional && ccli_option_is_positional(opt)) {
                 matched_arg = true;
                 ccli_option_set_matched(options[opt_search]);
-                if (strlen(arg) > CCLI_MAX_STR_LEN) {
-                    ccli_fatalf(bin, "Option %s has a too long string argument. Max allowed is %d", opt.long_arg, CCLI_MAX_STR_LEN);
+                switch (ccli_option_type(opt)) {
+                case ccli_boolean: {
+                    *((bool *)options[opt_search].data) = true;
+                } break;
+                case ccli_string: {
+                    if (strlen(arg) > CCLI_MAX_STR_LEN) {
+                        ccli_fatalf(bin, "Option %s has a too long string argument. Max allowed is %d", opt.long_arg, CCLI_MAX_STR_LEN);
+                    }
+                    strcpy((char *)options[opt_search].data, arg);
+                } break;
+                case ccli_number: {
+                    int64_t arg_num_parse_res = 0;
+
+                    if (ccli_try_parse_int(arg, &arg_num_parse_res)) {
+                        *((int64_t *)options[opt_search].data) = arg_num_parse_res;
+                    } else {
+                        ccli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg);
+                    }
+                } break;
+                case ccli_unumber: {
+                    uint64_t arg_unum_parse_res = 0;
+
+                    if (ccli_try_parse_uint(arg, &arg_unum_parse_res)) {
+                        *((uint64_t *)options[opt_search].data) = arg_unum_parse_res;
+                    } else {
+                        ccli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg);
+                    }
+                } break;
+                default: {
+                    ccli_panic("Unrecognized type of flag encountered!");
+                } break;
                 }
-                strcpy((char *)options[opt_search].data, arg);
             } else if ((is_long && ccli__long_opt_eq(arg, opt.long_arg)) || (short_opt == ccli_short_single && arg[1] == opt.short_arg)) {
                 matched_arg = true;
                 ccli_option_set_matched(options[opt_search]);
