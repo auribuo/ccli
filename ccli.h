@@ -304,6 +304,7 @@ bool ccli_try_parse_int(const char *num, int64_t *data) {
         failed = true;
     }
 
+#ifndef CCLI_DISALLOW_HEX_NUMBERS
     if (failed) {
         if (num_len <= 2 || num[0] != '0' || num[1] != 'x') {
             failed = true;
@@ -323,7 +324,9 @@ bool ccli_try_parse_int(const char *num, int64_t *data) {
             }
         }
     }
+#endif // !CCLI_DISALLOW_HEX_NUMBERS
 
+#ifndef CCLI_DISALLOW_BIN_NUMBERS
     if (failed) {
         if (num_len <= 2 || num[0] != '0' || num[1] != 'b') {
             return false;
@@ -345,6 +348,7 @@ bool ccli_try_parse_int(const char *num, int64_t *data) {
             failed = true;
         }
     }
+#endif // !CCLI_DISALLOW_BIN_NUMBERS
 
     if (!failed) {
         *data = parsed;
@@ -371,6 +375,7 @@ bool ccli_try_parse_uint(const char *num, uint64_t *data) {
         failed = true;
     }
 
+#ifndef CCLI_DISALLOW_HEX_NUMBERS
     if (failed) {
         if (num_len <= 2 || num[0] != '0' || num[1] != 'x') {
             failed = true;
@@ -390,7 +395,9 @@ bool ccli_try_parse_uint(const char *num, uint64_t *data) {
             }
         }
     }
+#endif // !CCLI_DISALLOW_HEX_NUMBERS
 
+#ifndef CCLI_DISALLOW_BIN_NUMBERS
     if (failed) {
         if (num_len <= 2 || num[0] != '0' || num[1] != 'b') {
             return false;
@@ -412,6 +419,7 @@ bool ccli_try_parse_uint(const char *num, uint64_t *data) {
             failed = true;
         }
     }
+#endif // !CCLI_DISALLOW_BIN_NUMBERS
 
     if (!failed) {
         *data = parsed;
