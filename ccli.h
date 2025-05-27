@@ -694,7 +694,7 @@ void ccli__parse_remaining_positionals(ccli_option *options, ccli_command *subco
         size_t len = ccli__opt_len(options);
         for (size_t opt_search = 0; opt_search < len; opt_search++) {
             ccli_option opt = options[opt_search];
-            if (!(ccli_option_is_matched(opt)) && ccli_option_is_positional(opt)) {
+            if (!ccli_option_is_matched(opt) && ccli_option_is_positional(opt)) {
                 ccli_option_set_matched(options[opt_search]);
                 switch (ccli_option_type(opt)) {
                 case ccli_boolean: {
