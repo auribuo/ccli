@@ -680,7 +680,7 @@ bool ccli__is_option(char *opt) {
 }
 
 void ccli__parse_remaining_positionals(ccli_option *options, ccli_command *subcommands, const char *subcommand, int argc_idx, int argc, char **argv) {
-    const char* bin = argv[0];
+    const char *bin = argv[0];
     size_t pos_arg_count = ccli__pos_args_len(options, subcommands, subcommand);
     if ((size_t)(argc - argc_idx - 1) > pos_arg_count) {
         ccli_fatalf_help(argv[0], "Too many positional arguments: Expected %d got %d", pos_arg_count, argc - argc_idx - 1);
@@ -890,7 +890,7 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
             if (!(ccli_option_is_global(opt)) && !(ccli_option_subcmd(opt) == cmd_idx)) {
                 continue;
             }
-            if (is_positional && ccli_option_is_positional(opt)) {
+            if (is_positional && ccli_option_is_positional(opt) && !ccli_option_is_matched(opt)) {
                 matched_arg = true;
                 ccli_option_set_matched(options[opt_search]);
                 switch (ccli_option_type(opt)) {
@@ -982,7 +982,11 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
         }
 
         if (!matched_arg) {
-            ccli_fatalf_help(bin, "Unknown argument `%s`", arg);
+            if (is_positional) {
+                ccli_fatalf_help(bin, "Excess positional argument `%s`", arg);
+            } else {
+                ccli_fatalf_help(bin, "Unknown argument `%s`", arg);
+            }
         }
     }
 
