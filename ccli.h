@@ -801,19 +801,19 @@ void ccli__parse_remaining_positionals(ccli_option *options, ccli_command *subco
                     strcpy((char *)options[opt_search].data, arg);
                 } break;
                 case ccli_number: {
-                    ccli_num arg_num_parse_res = 0;
+                    int64_t arg_num_parse_res = 0;
 
                     if (ccli_try_parse_int(arg, &arg_num_parse_res)) {
-                        *((ccli_num *)options[opt_search].data) = arg_num_parse_res;
+                        *((ccli_num *)options[opt_search].data) = (ccli_num)arg_num_parse_res;
                     } else {
                         ccli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg);
                     }
                 } break;
                 case ccli_unumber: {
-                    ccli_unum arg_unum_parse_res = 0;
+                    uint64_t arg_unum_parse_res = 0;
 
                     if (ccli_try_parse_uint(arg, &arg_unum_parse_res)) {
-                        *((ccli_unum *)options[opt_search].data) = arg_unum_parse_res;
+                        *((ccli_unum *)options[opt_search].data) = (ccli_unum)arg_unum_parse_res;
                     } else {
                         ccli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg);
                     }
@@ -909,10 +909,10 @@ void ccli__parse_equals(const char *bin, ccli_option *options, char *arg, uint64
                     strcpy((char *)options[opt_search].data, param);
                 } else if (ccli_option_type(opt) == ccli_number) {
                     char *arg_num_param = param;
-                    ccli_num arg_num_parse_res = 0;
+                    int64_t arg_num_parse_res = 0;
 
                     if (ccli_try_parse_int(arg_num_param, &arg_num_parse_res)) {
-                        *((ccli_num *)options[opt_search].data) = arg_num_parse_res;
+                        *((ccli_num *)options[opt_search].data) = (ccli_num)arg_num_parse_res;
                     } else {
                         CCLI_FREE(opt_str);
                         CCLI_FREE(param);
@@ -920,10 +920,10 @@ void ccli__parse_equals(const char *bin, ccli_option *options, char *arg, uint64
                     }
                 } else if (ccli_option_type(opt) == ccli_unumber) {
                     char *arg_unum_param = param;
-                    ccli_unum arg_unum_parse_res = 0;
+                    uint64_t arg_unum_parse_res = 0;
 
                     if (ccli_try_parse_uint(arg_unum_param, &arg_unum_parse_res)) {
-                        *((ccli_unum *)options[opt_search].data) = arg_unum_parse_res;
+                        *((ccli_unum *)options[opt_search].data) = (ccli_unum)arg_unum_parse_res;
                     } else {
                         CCLI_FREE(opt_str);
                         CCLI_FREE(param);
@@ -998,19 +998,19 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
                     strcpy((char *)options[opt_search].data, arg);
                 } break;
                 case ccli_number: {
-                    ccli_num arg_num_parse_res = 0;
+                    int64_t arg_num_parse_res = 0;
 
                     if (ccli_try_parse_int(arg, &arg_num_parse_res)) {
-                        *((ccli_num *)options[opt_search].data) = arg_num_parse_res;
+                        *((ccli_num *)options[opt_search].data) = (ccli_num)arg_num_parse_res;
                     } else {
                         ccli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg);
                     }
                 } break;
                 case ccli_unumber: {
-                    ccli_unum arg_unum_parse_res = 0;
+                    uint64_t arg_unum_parse_res = 0;
 
                     if (ccli_try_parse_uint(arg, &arg_unum_parse_res)) {
-                        *((ccli_unum *)options[opt_search].data) = arg_unum_parse_res;
+                        *((ccli_unum *)options[opt_search].data) = (ccli_unum)arg_unum_parse_res;
                     } else {
                         ccli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg);
                     }
@@ -1029,10 +1029,10 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
                     if (argc_idx + 1 >= argc || ccli__is_option(argv[argc_idx + 1])) {
                         if (ccli_option_type(opt) == ccli_number && argc_idx + 1 < argc) {
                             char *arg_num_param_maybe = argv[argc_idx + 1];
-                            ccli_num arg_num_parse_maybe = 0;
+                            int64_t arg_num_parse_maybe = 0;
 
                             if (ccli_try_parse_int(arg_num_param_maybe, &arg_num_parse_maybe)) {
-                                *((ccli_num *)options[opt_search].data) = arg_num_parse_maybe;
+                                *((ccli_num *)options[opt_search].data) = (ccli_num)arg_num_parse_maybe;
                                 argc_idx++;
                             } else {
                                 ccli_fatalf_help(bin, "Missing argument: Option `%s` requires an argument but none was given", opt.long_arg);
@@ -1050,19 +1050,19 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
                         strcpy((char *)options[opt_search].data, arg);
                     } else if (ccli_option_type(opt) == ccli_number) {
                         char *arg_num_param = argv[(++argc_idx)];
-                        ccli_num arg_num_parse_res = 0;
+                        int64_t arg_num_parse_res = 0;
 
                         if (ccli_try_parse_int(arg_num_param, &arg_num_parse_res)) {
-                            *((ccli_num *)options[opt_search].data) = arg_num_parse_res;
+                            *((ccli_num *)options[opt_search].data) = (ccli_unum)arg_num_parse_res;
                         } else {
                             ccli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg_num_param);
                         }
                     } else if (ccli_option_type(opt) == ccli_unumber) {
                         char *arg_unum_param = argv[(++argc_idx)];
-                        ccli_unum arg_unum_parse_res = 0;
+                        uint64_t arg_unum_parse_res = 0;
 
                         if (ccli_try_parse_uint(arg_unum_param, &arg_unum_parse_res)) {
-                            *((ccli_unum *)options[opt_search].data) = arg_unum_parse_res;
+                            *((ccli_unum *)options[opt_search].data) = (ccli_unum)arg_unum_parse_res;
                         } else {
                             ccli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg_unum_param);
                         }
