@@ -518,41 +518,26 @@ bool ccli_streq(const char *s1, const char *s2) {
     if (s1 == NULL || s2 == NULL) {
         return s1 == s2;
     }
-    if (s1 == s2) {
-        return true;
-    }
-    return strcmp(s1, s2) == 0;
+    return (s1 == s2) || strcmp(s1, s2) == 0;
 }
 
 bool ccli_strcontains(const char *s, char c) {
+    return ccli_stridx(s, c) >= 0;
+}
+
+int64_t ccli_stridx(const char *s, char c) {
     if (s == NULL) {
-        return false;
+        return -1;
     }
 
     size_t len = strlen(s);
     for (size_t i = 0; i < len; i++) {
         if (s[i] == c) {
-            return true;
+            return i;
         }
     }
 
-    return false;
-}
-
-int64_t ccli_stridx(const char *s, char c) {
-    int64_t idx = -1;
-    if (s == NULL) {
-        return idx;
-    }
-
-    size_t len = strlen(s);
-    for (size_t i = 0; i < len && idx == -1; i++) {
-        if (s[i] == c) {
-            idx = i;
-        }
-    }
-
-    return idx;
+    return -1;
 }
 
 void ccli__validate_options(ccli_option *options) {

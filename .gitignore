@@ -2,3 +2,4 @@ main*
 vgcore*
 .clangd
 ccli.o
+build.sh
