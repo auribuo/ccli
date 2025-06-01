@@ -37,7 +37,7 @@ examples(examples,
 int main(int argc, char **argv) {
     // This parses the arguments and writes the parsed values into the given pointers and returns the subcommand or null if none was provided
     // The function exits with an error message if something went wrong.
-    // You can control the output streams using CCLI_OK_STREAM for the help menu and CCLI_ERR_STREAM for all the error messages
+    // You can control the output stream using CCLI_STREAM
     // commands and examples are optional
     const char *subcmd = parse_opts(commands, options, argc, argv, examples);
 
@@ -53,7 +53,6 @@ int main(int argc, char **argv) {
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,13 +70,9 @@ extern "C" {
 #define CCLI_MAX_STR_LEN 1024
 #endif // !CCLI_MAX_STR_LEN
 
-#ifndef CCLI_OK_STREAM
-#define CCLI_OK_STREAM stdout
-#endif // !CCLI_OK_STREAM
-
-#ifndef CCLI_ERR_STREAM
-#define CCLI_ERR_STREAM stderr
-#endif // !CCLI_ERR_STREAM
+#ifndef CCLI_STREAM
+#define CCLI_STREAM stderr
+#endif // !CCLI_STREAM
 
 #ifndef CCLI_ALLOC
 #define CCLI_ALLOC alloca
@@ -97,43 +92,19 @@ extern "C" {
 #define ccli_unum unsigned long
 #endif // !ccli_unum
 
-// Binary representation: 0000000000000000
-// Legend:                rpmccccccccttttt
-// r = required
-// p = positional
-// m = matched
-// c = command where 0 = global, 1 = root, n - 2 = index in commands
-// t = type
-#define CCLI_ARG_NULL 0
-#define CCLI_ARG_REQ_MASK 32768 // 0b1000000000000000
-#define CCLI_ARG_POS_MASK 16384 // 0b0100000000000000
-#define CCLI_ARG_MAT_MASK 8192  // 0b0010000000000000
-#define CCLI_ARG_TYP_MASK 31    // 0b0000000000011111
-#define CCLI_ARG_CMD_MASK 8160  // 0b0001111111100000
+#ifndef CCLI_HELP_DESC
+#define CCLI_HELP_DESC "Show this help menu"
+#endif // !CCLI_HELP_DESC
 
-#define ccli_params(typ, req, pos, cmd) (((req) << 15) | ((pos) << 14) | ((cmd) << 5) | (typ)) & (~CCLI_ARG_MAT_MASK)
+#define ccli_option_is_global(opt) ((opt).cmd_idx == 0)
+#define ccli_option_is_root(opt) ((opt).cmd_idx == 1)
+#define ccli_option_subcmd_idx(opt) ((opt).cmd_idx - 2)
 
-#define ccli_option_type(opt) ((opt).params & CCLI_ARG_TYP_MASK)
-#define ccli_option_subcmd(opt) (((opt).params & CCLI_ARG_CMD_MASK) >> 5)
-#define ccli_option_subcmd_idx(opt) ((((opt).params & CCLI_ARG_CMD_MASK) >> 5) - 2)
-
-#define ccli_option_is_global(opt) ((((opt).params & CCLI_ARG_CMD_MASK) >> 5) == 0)
-#define ccli_option_is_root(opt) ((((opt).params & CCLI_ARG_CMD_MASK) >> 5) == 1)
-#define ccli_option_is_required(opt) (((opt).params & CCLI_ARG_REQ_MASK) == CCLI_ARG_REQ_MASK)
-#define ccli_option_is_positional(opt) (((opt).params & CCLI_ARG_POS_MASK) == CCLI_ARG_POS_MASK)
-#define ccli_option_is_null(opt) ((opt).params == CCLI_ARG_NULL)
-#define ccli_option_is_matched(opt) (((opt).params & CCLI_ARG_MAT_MASK) == CCLI_ARG_MAT_MASK)
-
-#define ccli_option_set_matched(opt)       \
-    do {                                   \
-        (opt).params |= CCLI_ARG_MAT_MASK; \
-    } while (0)
-
-#define ccli_scope_global() 0
-#define ccli_scope_root() 1
+#define ccli_scope_global() (0)
+#define ccli_scope_root() (1
 #define ccli_scope_subcmd(x) ((x) + 2)
 
-#define ccli_option_term {0, NULL, CCLI_ARG_NULL, NULL, NULL, NULL}
+#define ccli_option_term {0, NULL, ccli_null, 0, 0, 0, 0, NULL, NULL, NULL}
 #define ccli_command_term {NULL, NULL}
 #define ccli_example_term {NULL, NULL}
 
@@ -150,64 +121,50 @@ extern "C" {
 #define ccli_short_name(var) (ccli_short_name_helper(var))
 #define ccli_given_short_name_helper(long) (long[0])
 
-#define ccli_option_bool_var_p(var, desc, req, pos, scope) \
-    {ccli_short_name(var), #var, ccli_params(ccli_boolean, req, pos, scope), &var, desc, NULL}
-#define ccli_option_bool_var_pc(short, var, desc, req, pos, scope) \
-    {short, #var, ccli_params(ccli_boolean, req, pos, scope), &var, desc, NULL}
-#define ccli_option_bool_var(var, desc, req, pos, scope) \
-    {0, #var, ccli_params(ccli_boolean, req, pos, scope), &var, desc, NULL}
-#define ccli_option_bool_p(long, var, desc, req, pos, scope) \
-    {ccli_given_short_name_helper(long), long, ccli_params(ccli_boolean, req, pos, scope), &var, desc, NULL}
-#define ccli_option_bool_pc(long, short, var, desc, req, pos, scope) \
-    {short, long, ccli_params(ccli_boolean, req, pos, scope), &var, desc, NULL}
-#define ccli_option_bool(long, var, desc, req, pos, scope) \
-    {0, long, ccli_params(ccli_boolean, req, pos, scope), &var, desc, NULL}
+#define ccli_option_bool_pc(long, short, var, desc, req, pos, scope) {short, long, ccli_boolean, req, pos, scope, 0, &var, desc, NULL}
+#define ccli_option_bool_p(long, var, desc, req, pos, scope) ccli_option_bool_pc(long, ccli_given_short_name_helper(long), var, desc, req, pos, scope)
+#define ccli_option_bool(long, var, desc, req, pos, scope) ccli_option_bool_pc(long, 0, var, desc, req, pos, scope)
+#define ccli_option_bool_var_pc(short, var, desc, req, pos, scope) ccli_option_bool_pc(#var, short, var, desc, req, pos, scope)
+#define ccli_option_bool_var_p(var, desc, req, pos, scope) ccli_option_bool_pc(#var, ccli_short_name(var), var, desc, req, pos, scope)
+#define ccli_option_bool_var(var, desc, req, pos, scope) ccli_option_bool_pc(#var, 0, var, desc, req, pos, scope)
 
-#define ccli_option_string_var_p(var, desc, var_desc, req, pos, scope) \
-    {ccli_short_name(var), #var, ccli_params(ccli_string, req, pos, scope), &var, desc, var_desc}
-#define ccli_option_string_var_pc(short, var, desc, var_desc, req, pos, scope) \
-    {short, #var, ccli_params(ccli_string, req, pos, scope), &var, desc, var_desc}
-#define ccli_option_string_var(var, desc, var_desc, req, pos, scope) \
-    {0, #var, ccli_params(ccli_string, req, pos, scope), &var, desc, var_desc}
-#define ccli_option_string_p(long, var, desc, var_desc, req, pos, scope) \
-    {ccli_given_short_name_helper(long), long, ccli_params(ccli_string, req, pos, scope), &var, desc, var_desc}
-#define ccli_option_string_pc(long, short, var, desc, var_desc, req, pos, scope) \
-    {short, long, ccli_params(ccli_string, req, pos, scope), &var, desc, var_desc}
-#define ccli_option_string(long, var, desc, var_desc, req, pos, scope) \
-    {0, long, ccli_params(ccli_string, req, pos, scope), &var, desc, var_desc}
+#define ccli_option_string_pc(long, short, var, desc, var_desc, req, pos, scope) {short, long, ccli_string, req, pos, scope, 0, &var, desc, var_desc}
+#define ccli_option_string_p(long, var, desc, var_desc, req, pos, scope) ccli_option_string_pc(long, ccli_given_short_name_helper(long), var, desc, var_desc, req, pos, scope)
+#define ccli_option_string(long, var, desc, var_desc, req, pos, scope) ccli_option_string_pc(long, 0, var, desc, var_desc, req, pos, scope)
+#define ccli_option_string_var_pc(short, var, desc, var_desc, req, pos, scope) ccli_option_string_pc(#var, short, var, desc, var_desc, req, pos, scope)
+#define ccli_option_string_var_p(var, desc, var_desc, req, pos, scope) ccli_option_string_pc(#var, ccli_short_name(var), var, desc, var_desc, req, pos, scope)
+#define ccli_option_string_var(var, desc, var_desc, req, pos, scope) ccli_option_string_pc(#var, 0, var, desc, var_desc, req, pos, scope)
 
-#define ccli_option_int_var_p(var, desc, var_desc, req, pos, scope) \
-    {ccli_short_name(var), #var, ccli_params(ccli_number, req, pos, scope), &var, desc, var_desc}
-#define ccli_option_int_var_pc(short, var, desc, var_desc, req, pos, scope) \
-    {short, #var, ccli_params(ccli_number, req, pos, scope), &var, desc, var_desc}
-#define ccli_option_int_var(var, desc, var_desc, req, pos, scope) \
-    {0, #var, ccli_params(ccli_number, req, pos, scope), &var, desc, var_desc}
-#define ccli_option_int_p(long, var, desc, var_desc, req, pos, scope) \
-    {ccli_given_short_name_helper(long), long, ccli_params(ccli_number, req, pos, scope), &var, desc, var_desc}
-#define ccli_option_int_pc(long, short, var, desc, var_desc, req, pos, scope) \
-    {short, long, ccli_params(ccli_number, req, pos, scope), &var, desc, var_desc}
-#define ccli_option_int(long, var, desc, var_desc, req, pos, scope) \
-    {0, long, ccli_params(ccli_number, req, pos, scope), &var, desc, var_desc}
+#define ccli_option_int_pc(long, short, var, desc, var_desc, req, pos, scope) {short, long, ccli_number, req, pos, scope, 0, &var, desc, var_desc}
+#define ccli_option_int_p(long, var, desc, var_desc, req, pos, scope) ccli_option_int_pc(long, ccli_given_short_name_helper(long), var, desc, var_desc, req, pos, scope)
+#define ccli_option_int(long, var, desc, var_desc, req, pos, scope) ccli_option_int_pc(long, 0, var, desc, var_desc, req, pos, scope)
+#define ccli_option_int_var_pc(short, var, desc, var_desc, req, pos, scope) ccli_option_int_pc(#var, short, var, desc, var_desc, req, pos, scope)
+#define ccli_option_int_var_p(var, desc, var_desc, req, pos, scope) ccli_option_int_pc(#var, ccli_short_name(var), var, desc, var_desc, req, pos, scope)
+#define ccli_option_int_var(var, desc, var_desc, req, pos, scope) ccli_option_int_pc(#var, 0, var, desc, var_desc, req, pos, scope)
 
-#define ccli_option_uint_var_p(var, desc, var_desc, req, pos, scope) \
-    {ccli_short_name(var), #var, ccli_params(ccli_unumber, req, pos, scope), &var, desc, var_desc}
-#define ccli_option_uint_var_pc(short, var, desc, var_desc, req, pos, scope) \
-    {short, #var, ccli_params(ccli_unumber, req, pos, scope), &var, desc, var_desc}
-#define ccli_option_uint_var(var, desc, var_desc, req, pos, scope) \
-    {0, #var, ccli_params(ccli_unumber, req, pos, scope), &var, desc, var_desc}
-#define ccli_option_uint_p(long, var, desc, var_desc, req, pos, scope) \
-    {ccli_given_short_name_helper(long), long, ccli_params(ccli_unumber, req, pos, scope), &var, desc, var_desc}
-#define ccli_option_uint_pc(long, short, var, desc, var_desc, req, pos, scope) \
-    {short, long, ccli_params(ccli_unumber, req, pos, scope), &var, desc, var_desc}
-#define ccli_option_uint(long, var, desc, var_desc, req, pos, scope) \
-    {0, long, ccli_params(ccli_unumber, req, pos, scope), &var, desc, var_desc}
+#define ccli_option_uint_pc(long, short, var, desc, var_desc, req, pos, scope) {short, long, ccli_unumber, req, pos, scope, 0, &var, desc, var_desc}
+#define ccli_option_uint_p(long, var, desc, var_desc, req, pos, scope) ccli_option_uint_pc(long, ccli_given_short_name_helper(long), var, desc, var_desc, req, pos, scope)
+#define ccli_option_uint(long, var, desc, var_desc, req, pos, scope) ccli_option_uint_pc(long, 0, var, desc, var_desc, req, pos, scope)
+#define ccli_option_uint_var_pc(short, var, desc, var_desc, req, pos, scope) ccli_option_uint_pc(#var, short, var, desc, var_desc, req, pos, scope)
+#define ccli_option_uint_var_p(var, desc, var_desc, req, pos, scope) ccli_option_uint_pc(#var, ccli_short_name(var), var, desc, var_desc, req, pos, scope)
+#define ccli_option_uint_var(var, desc, var_desc, req, pos, scope) ccli_option_uint_pc(#var, 0, var, desc, var_desc, req, pos, scope)
 
-#define ccli_options_cmd_is_null(opt) ((opt).command == NULL)
+typedef enum {
+    ccli_null = 0,
+    ccli_boolean = 1,
+    ccli_string = 2,
+    ccli_number = 4,
+    ccli_unumber = 8,
+} ccli_option_kind;
 
 typedef struct {
     char short_arg;
     const char *long_arg;
-    uint16_t params;
+    ccli_option_kind kind;
+    bool required;
+    bool positional;
+    size_t cmd_idx;
+    bool matched;
     void *data;
     const char *desc;
     const char *arg_desc;
@@ -217,13 +174,6 @@ typedef struct {
     const char *command;
     const char *desc;
 } ccli_command;
-
-typedef enum {
-    ccli_boolean = 1,
-    ccli_string = 2,
-    ccli_number = 4,
-    ccli_unumber = 8,
-} ccli_option_kind;
 
 typedef enum {
     ccli_short_none,
@@ -281,19 +231,20 @@ void ccli__find_help(ccli_command *subcommands, const char *subcommand, ccli_opt
 size_t ccli__run_command(ccli_command *subcommands, int argc, char *argv[]);
 void ccli__parse_equals(const char *bin, ccli_option *options, char *arg, uint64_t cmd_idx);
 
-const ccli_option help_opt = {'h', "help", ccli_params(ccli_boolean, false, false, ccli_scope_global()), NULL, "Show this help menu", NULL};
+const ccli_option help_opt = {'h', "help", ccli_boolean, false, false, ccli_scope_global(), 0, NULL, CCLI_HELP_DESC, NULL};
 
 #ifdef CCLI_IMPLEMENTATION
 #include <assert.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdarg.h>
+#include <string.h>
 
 CCLI_NORETURN(void ccli_panic_loc(const char *file, int line, const char *msg)) {
     if (msg != NULL) {
-        fprintf(CCLI_ERR_STREAM, "%s:%d: cli_panic: %s\n", file, line, msg);
+        fprintf(CCLI_STREAM, "%s:%d: cli_panic: %s\n", file, line, msg);
     } else {
-        fprintf(CCLI_ERR_STREAM, "%s:%d: cli_panic: Program cli_paniced.", file, line);
+        fprintf(CCLI_STREAM, "%s:%d: cli_panic: Program cli_paniced.", file, line);
     }
     exit(1);
 }
@@ -303,9 +254,9 @@ CCLI_NORETURN(void ccli_panicf_loc(const char *file, int line, const char *msg, 
     va_start(argptr, msg);
 
     if (msg != NULL) {
-        fprintf(CCLI_ERR_STREAM, "%s:%d: cli_panic: ", file, line);
-        vfprintf(CCLI_ERR_STREAM, msg, argptr);
-        fputc('\n', CCLI_ERR_STREAM);
+        fprintf(CCLI_STREAM, "%s:%d: cli_panic: ", file, line);
+        vfprintf(CCLI_STREAM, msg, argptr);
+        fputc('\n', CCLI_STREAM);
     }
     va_end(argptr);
     exit(1);
@@ -313,7 +264,7 @@ CCLI_NORETURN(void ccli_panicf_loc(const char *file, int line, const char *msg, 
 
 CCLI_NORETURN(void ccli_fatal(const char *bin, const char *msg)) {
     if (msg != NULL) {
-        fprintf(CCLI_ERR_STREAM, "%s: %s\n", bin, msg);
+        fprintf(CCLI_STREAM, "%s: %s\n", bin, msg);
     }
     exit(1);
 }
@@ -323,9 +274,9 @@ CCLI_NORETURN(void ccli_fatalf(const char *bin, const char *format, ...)) {
     va_start(argptr, format);
 
     if (format != NULL) {
-        fprintf(CCLI_ERR_STREAM, "%s: ", bin);
-        vfprintf(CCLI_ERR_STREAM, format, argptr);
-        fputc('\n', CCLI_ERR_STREAM);
+        fprintf(CCLI_STREAM, "%s: ", bin);
+        vfprintf(CCLI_STREAM, format, argptr);
+        fputc('\n', CCLI_STREAM);
     }
     va_end(argptr);
     exit(1);
@@ -336,9 +287,9 @@ CCLI_NORETURN(void ccli_fatalf_help(const char *bin, const char *format, ...)) {
     va_start(argptr, format);
 
     if (format != NULL) {
-        fprintf(CCLI_ERR_STREAM, "%s: ", bin);
-        vfprintf(CCLI_ERR_STREAM, format, argptr);
-        fprintf(CCLI_ERR_STREAM, ". For more information see %s --help\n", bin);
+        fprintf(CCLI_STREAM, "%s: ", bin);
+        vfprintf(CCLI_STREAM, format, argptr);
+        fprintf(CCLI_STREAM, ". For more information see %s --help\n", bin);
     }
     va_end(argptr);
     exit(1);
@@ -349,9 +300,10 @@ size_t ccli__opt_len(ccli_option *options) {
         return 0;
     }
     size_t idx = 0;
-    ccli_option opt;
-    while (!ccli_option_is_null(opt = options[idx++]))
-        ;
+    ccli_option opt = options[idx];
+    while (opt.kind != ccli_null) {
+        opt = options[idx++];
+    }
     return idx - 1;
 }
 
@@ -360,9 +312,10 @@ size_t ccli__cmd_len(ccli_command *commands) {
         return 0;
     }
     size_t idx = 0;
-    ccli_command cmd;
-    while (!ccli_options_cmd_is_null(cmd = commands[idx++]))
-        ;
+    ccli_command cmd = commands[idx];
+    while (cmd.command != NULL) {
+        cmd = commands[idx++];
+    }
     return idx - 1;
 }
 
@@ -547,7 +500,7 @@ void ccli__validate_options(ccli_option *options) {
         if (opt.long_arg == NULL) {
             ccli_panicf("Invalid option at index %lu. Long option is always required!", i);
         }
-        if (ccli_option_type(opt) != ccli_boolean && !(ccli_option_is_positional(opt)) && opt.arg_desc == NULL) {
+        if (opt.kind != ccli_boolean && !(opt.positional) && opt.arg_desc == NULL) {
             ccli_panicf("Invalid option %s. If option is not boolean arg_desc is required!", opt.long_arg);
         }
     }
@@ -592,7 +545,7 @@ size_t ccli__pos_args_len(ccli_option *options, ccli_command *subcommands, const
     size_t len = ccli__opt_len(options);
 
     for (size_t i = 0; i < len; i++) {
-        if (ccli_option_is_positional(options[i]) && ccli__arg_relevant(options[i], subcommands, subcommand)) {
+        if (options[i].positional && ccli__arg_relevant(options[i], subcommands, subcommand)) {
             count++;
         }
     }
@@ -603,25 +556,25 @@ void ccli_help(ccli_command *subcommands, const char *subcommand, ccli_option *o
     uint32_t max_len = ccli__max_long_arg_len(options, subcommands, subcommand);
     size_t num_options = ccli__opt_len(options);
     size_t num_commands = ccli__cmd_len(subcommands);
-    fprintf(CCLI_OK_STREAM, "Usage: \n");
+    fprintf(CCLI_STREAM, "Usage: \n");
     if (num_commands > 0) {
         if (subcommand == NULL) {
-            fprintf(CCLI_OK_STREAM, "\t%s [command]\n", argv[0]);
+            fprintf(CCLI_STREAM, "\t%s [command]\n", argv[0]);
         }
     }
-    fprintf(CCLI_OK_STREAM, "\t%s ", argv[0]);
+    fprintf(CCLI_STREAM, "\t%s ", argv[0]);
     if (num_commands > 0 && subcommand != NULL) {
-        fprintf(CCLI_OK_STREAM, "%s ", subcommand);
+        fprintf(CCLI_STREAM, "%s ", subcommand);
     }
-    fprintf(CCLI_OK_STREAM, "[options] ");
+    fprintf(CCLI_STREAM, "[options] ");
     for (size_t i = 0; i < num_options; i++) {
         ccli_option opt = options[i];
-        if (ccli_option_is_positional(opt) && ccli__arg_relevant(opt, subcommands, subcommand)) {
-            fprintf(CCLI_OK_STREAM, "%s ", opt.long_arg);
+        if (opt.positional && ccli__arg_relevant(opt, subcommands, subcommand)) {
+            fprintf(CCLI_STREAM, "%s ", opt.long_arg);
         }
     }
     if (num_commands > 0 && subcommand == NULL) {
-        fprintf(CCLI_OK_STREAM, "\n\nAvailable commands:\n");
+        fprintf(CCLI_STREAM, "\n\nAvailable commands:\n");
         char *padded_cmd = (char *)CCLI_ALLOC(sizeof(char) * max_len + 1);
         ccli_check_alloc(padded_cmd);
         padded_cmd[max_len] = 0;
@@ -629,16 +582,16 @@ void ccli_help(ccli_command *subcommands, const char *subcommand, ccli_option *o
             ccli_command cmd = subcommands[i];
             memset(padded_cmd, ' ', max_len);
             memcpy(padded_cmd, cmd.command, strlen(cmd.command));
-            fprintf(CCLI_OK_STREAM, "\t%s      %s\n", padded_cmd, cmd.desc);
+            fprintf(CCLI_STREAM, "\t%s      %s\n", padded_cmd, cmd.desc);
         }
         CCLI_FREE(padded_cmd);
     } else {
-        fputc('\n', CCLI_OK_STREAM);
+        fputc('\n', CCLI_STREAM);
     }
-    fprintf(CCLI_OK_STREAM, "\nAvailable options:\n");
+    fprintf(CCLI_STREAM, "\nAvailable options:\n");
     for (size_t i = 0; i < num_options; i++) {
         ccli_option opt = options[i];
-        if (ccli_option_is_positional(opt) || !ccli__arg_relevant(opt, subcommands, subcommand)) {
+        if (opt.positional || !ccli__arg_relevant(opt, subcommands, subcommand)) {
             continue;
         }
         char *padded_long;
@@ -660,11 +613,11 @@ void ccli_help(ccli_command *subcommands, const char *subcommand, ccli_option *o
         }
 
         if (opt.short_arg == 0) {
-            fprintf(CCLI_OK_STREAM, "\t  ");
+            fprintf(CCLI_STREAM, "\t  ");
         } else {
-            fprintf(CCLI_OK_STREAM, "\t-%c", opt.short_arg);
+            fprintf(CCLI_STREAM, "\t-%c", opt.short_arg);
         }
-        fprintf(CCLI_OK_STREAM, " --%s %s\n", padded_long, opt.desc);
+        fprintf(CCLI_STREAM, " --%s %s\n", padded_long, opt.desc);
 
         CCLI_FREE(padded_long);
     }
@@ -675,31 +628,31 @@ void ccli_help(ccli_command *subcommands, const char *subcommand, ccli_option *o
     memcpy(padded_long, help_opt.long_arg, strlen(help_opt.long_arg));
     padded_long[max_len] = 0;
 
-    fprintf(CCLI_OK_STREAM, "\t-%c", help_opt.short_arg);
-    fprintf(CCLI_OK_STREAM, " --%s %s\n", padded_long, help_opt.desc);
+    fprintf(CCLI_STREAM, "\t-%c", help_opt.short_arg);
+    fprintf(CCLI_STREAM, " --%s %s\n", padded_long, help_opt.desc);
 
     CCLI_FREE(padded_long);
 
     if (ccli__pos_args_len(options, subcommands, subcommand) > 0) {
-        fprintf(CCLI_OK_STREAM, "\nPositional options:\n");
+        fprintf(CCLI_STREAM, "\nPositional options:\n");
         char *padded_long = (char *)CCLI_ALLOC(sizeof(char) * max_len + 1);
         ccli_check_alloc(padded_long);
         padded_long[max_len] = 0;
         for (size_t i = 0; i < num_options; i++) {
             ccli_option opt = options[i];
-            if (!(ccli_option_is_positional(opt)) || !ccli__arg_relevant(opt, subcommands, subcommand)) {
+            if (!opt.positional || !ccli__arg_relevant(opt, subcommands, subcommand)) {
                 continue;
             }
             memset(padded_long, ' ', max_len);
             memcpy(padded_long, opt.long_arg, strlen(opt.long_arg));
 
-            fprintf(CCLI_OK_STREAM, "\t%s      %s\n", padded_long, opt.desc);
+            fprintf(CCLI_STREAM, "\t%s      %s\n", padded_long, opt.desc);
         }
         CCLI_FREE(padded_long);
     }
 
     if (examples != NULL && examples[0].options != NULL) {
-        fprintf(CCLI_OK_STREAM, "\nExamples:\n");
+        fprintf(CCLI_STREAM, "\nExamples:\n");
         ccli_example example = examples[0];
         size_t max_len = strlen(example.options);
         for (size_t i = 0;; ++i) {
@@ -722,12 +675,12 @@ void ccli_help(ccli_command *subcommands, const char *subcommand, ccli_option *o
             }
             memset(buf, ' ', max_len + 1);
             memcpy(buf, example.options, strlen(example.options));
-            fprintf(CCLI_OK_STREAM, "%s %s%s\n", argv[0], buf, example.description);
+            fprintf(CCLI_STREAM, "%s %s%s\n", argv[0], buf, example.description);
         }
         CCLI_FREE(buf);
     }
 
-    fprintf(CCLI_OK_STREAM, "\n\nUse `%s [command] --help` to get help for a specific command\n", argv[0]);
+    fprintf(CCLI_STREAM, "\n\nUse `%s [command] --help` to get help for a specific command\n", argv[0]);
 }
 
 bool ccli__is_long_opt(char *opt) {
@@ -773,9 +726,9 @@ void ccli__parse_remaining_positionals(ccli_option *options, ccli_command *subco
         size_t len = ccli__opt_len(options);
         for (size_t opt_search = 0; opt_search < len; opt_search++) {
             ccli_option opt = options[opt_search];
-            if (!ccli_option_is_matched(opt) && ccli_option_is_positional(opt)) {
-                ccli_option_set_matched(options[opt_search]);
-                switch (ccli_option_type(opt)) {
+            if (!opt.matched && opt.positional) {
+                options[opt_search].matched = true;
+                switch (opt.kind) {
                 case ccli_boolean: {
                     *((bool *)options[opt_search].data) = true;
                 } break;
@@ -824,11 +777,11 @@ void ccli__check_unmatched(const char *bin, uint8_t cmd_idx, ccli_option *option
     size_t len = ccli__opt_len(options);
     for (size_t opt_search = 0; opt_search < len; opt_search++) {
         ccli_option opt = options[opt_search];
-        if (!(ccli_option_is_global(opt)) && ccli_option_subcmd(opt) != cmd_idx) {
+        if (!(ccli_option_is_global(opt)) && opt.cmd_idx != cmd_idx) {
             continue;
         }
-        if (!(ccli_option_is_matched(opt))) {
-            if (ccli_option_is_required(opt)) {
+        if (!opt.matched) {
+            if (opt.required) {
                 ccli_fatalf_help(bin, "Missing required argument `%s`", opt.long_arg);
             }
         }
@@ -878,21 +831,21 @@ void ccli__parse_equals(const char *bin, ccli_option *options, char *arg, uint64
     bool matched_arg = false;
     for (size_t opt_search = 0; opt_search < opt_count; opt_search++) {
         ccli_option opt = options[opt_search];
-        if (!(ccli_option_is_global(opt)) && !(ccli_option_subcmd(opt) == cmd_idx)) {
+        if (!(ccli_option_is_global(opt)) && !(opt.cmd_idx == cmd_idx)) {
             continue;
         }
         if (opt_str[1] == opt.short_arg || ccli__long_opt_eq(opt_str, opt.long_arg)) {
             matched_arg = true;
-            ccli_option_set_matched(options[opt_search]);
+            options[opt_search].matched = true;
 
-            if (ccli_option_type(opt) == ccli_boolean) {
+            if (opt.kind == ccli_boolean) {
                 CCLI_FREE(opt_str);
                 CCLI_FREE(param);
                 ccli_fatalf_help(bin, "Invalid flag usage. Option `%s` does not expect an argument", opt.long_arg);
             } else {
-                if (ccli_option_type(opt) == ccli_string) {
+                if (opt.kind == ccli_string) {
                     strcpy((char *)options[opt_search].data, param);
-                } else if (ccli_option_type(opt) == ccli_number) {
+                } else if (opt.kind == ccli_number) {
                     char *arg_num_param = param;
                     int64_t arg_num_parse_res = 0;
 
@@ -903,7 +856,7 @@ void ccli__parse_equals(const char *bin, ccli_option *options, char *arg, uint64
                         CCLI_FREE(param);
                         ccli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg_num_param);
                     }
-                } else if (ccli_option_type(opt) == ccli_unumber) {
+                } else if (opt.kind == ccli_unumber) {
                     char *arg_unum_param = param;
                     uint64_t arg_unum_parse_res = 0;
 
@@ -936,7 +889,7 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
 
     const char *bin = argv[0];
     ccli__validate_options(options);
-    int cmd_idx = ccli__run_command(subcommands, argc, argv);
+    size_t cmd_idx = ccli__run_command(subcommands, argc, argv);
     const char *subcommand = cmd_idx > 1 ? subcommands[cmd_idx - 2].command : NULL;
     ccli__find_help(subcommands, subcommand, options, argc, argv, examples);
     size_t opt_count = ccli__opt_len(options);
@@ -966,13 +919,13 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
 
         for (size_t opt_search = 0; opt_search < opt_count; opt_search++) {
             ccli_option opt = options[opt_search];
-            if (!(ccli_option_is_global(opt)) && !(ccli_option_subcmd(opt) == cmd_idx)) {
+            if (!(ccli_option_is_global(opt)) && !(opt.cmd_idx == cmd_idx)) {
                 continue;
             }
-            if (is_positional && ccli_option_is_positional(opt) && !ccli_option_is_matched(opt)) {
+            if (is_positional && opt.positional && !opt.matched) {
                 matched_arg = true;
-                ccli_option_set_matched(options[opt_search]);
-                switch (ccli_option_type(opt)) {
+                options[opt_search].matched = true;
+                switch (opt.kind) {
                 case ccli_boolean: {
                     *((bool *)options[opt_search].data) = true;
                 } break;
@@ -1006,13 +959,13 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
                 }
             } else if ((is_long && ccli__long_opt_eq(arg, opt.long_arg)) || (short_opt == ccli_short_single && arg[1] == opt.short_arg)) {
                 matched_arg = true;
-                ccli_option_set_matched(options[opt_search]);
+                options[opt_search].matched = true;
 
-                if (ccli_option_type(opt) == ccli_boolean) {
+                if (opt.kind == ccli_boolean) {
                     *((bool *)options[opt_search].data) = true;
                 } else {
                     if (argc_idx + 1 >= argc || ccli__is_option(argv[argc_idx + 1])) {
-                        if (ccli_option_type(opt) == ccli_number && argc_idx + 1 < argc) {
+                        if (opt.kind == ccli_number && argc_idx + 1 < argc) {
                             char *arg_num_param_maybe = argv[argc_idx + 1];
                             int64_t arg_num_parse_maybe = 0;
 
@@ -1022,18 +975,18 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
                             } else {
                                 ccli_fatalf_help(bin, "Missing argument: Option `%s` requires an argument but none was given", opt.long_arg);
                             }
-                        } else if (ccli_option_type(opt) == ccli_unumber && argc_idx + 1 < argc) {
+                        } else if (opt.kind == ccli_unumber && argc_idx + 1 < argc) {
                             ccli_fatalf_help(bin, "Invalid unsigned numerical value for option `%s`: %s", opt.long_arg, argv[argc_idx + 1]);
                         } else {
                             ccli_fatalf_help(bin, "Missing argument: Option `%s` requires an argument but none was given", opt.long_arg);
                         }
-                    } else if (ccli_option_type(opt) == ccli_string) {
+                    } else if (opt.kind == ccli_string) {
                         const char *arg = argv[++argc_idx];
                         if (strlen(arg) > CCLI_MAX_STR_LEN) {
                             ccli_fatalf(bin, "Option %s has a too long string argument. Max allowed is %d", opt.long_arg, CCLI_MAX_STR_LEN);
                         }
                         strcpy((char *)options[opt_search].data, arg);
-                    } else if (ccli_option_type(opt) == ccli_number) {
+                    } else if (opt.kind == ccli_number) {
                         char *arg_num_param = argv[(++argc_idx)];
                         int64_t arg_num_parse_res = 0;
 
@@ -1042,7 +995,7 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
                         } else {
                             ccli_fatalf(bin, "Invalid numerical sequence for option `%s`: %s", opt.long_arg, arg_num_param);
                         }
-                    } else if (ccli_option_type(opt) == ccli_unumber) {
+                    } else if (opt.kind == ccli_unumber) {
                         char *arg_unum_param = argv[(++argc_idx)];
                         uint64_t arg_unum_parse_res = 0;
 
@@ -1072,6 +1025,7 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
     ccli__check_unmatched(bin, cmd_idx, options);
     return cmd_idx == 1 ? NULL : subcommands[cmd_idx - 2].command;
 }
+#endif // CCLI_IMPLEMENTATION
 #ifndef _CCLI_STRIP_PREFIX_GUARD
 #define _CCLI_STRIP_PREFIX_GUARD
 #ifdef CCLI_STRIP_PREFIX
@@ -1164,7 +1118,6 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
 // #define _parse_equals ccli__parse_equals
 #endif // CCLI_STRIP_PREFIX
 #endif // !_CCLI_STRIP_PREFIX_GUARD
-#endif // CCLI_IMPLEMENTATION
 #ifdef __cplusplus
 }
 #endif // __cplusplus
