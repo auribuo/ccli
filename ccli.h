@@ -500,7 +500,7 @@ void ccli__validate_options(ccli_option *options) {
         if (opt.long_arg == NULL) {
             ccli_panicf("Invalid option at index %lu. Long option is always required!", i);
         }
-        if (opt.kind != ccli_boolean && !(opt.positional) && opt.arg_desc == NULL) {
+        if (opt.kind != ccli_boolean && !opt.positional && opt.arg_desc == NULL) {
             ccli_panicf("Invalid option %s. If option is not boolean arg_desc is required!", opt.long_arg);
         }
     }
@@ -780,10 +780,8 @@ void ccli__check_unmatched(const char *bin, uint8_t cmd_idx, ccli_option *option
         if (!(ccli_option_is_global(opt)) && opt.cmd_idx != cmd_idx) {
             continue;
         }
-        if (!opt.matched) {
-            if (opt.required) {
-                ccli_fatalf_help(bin, "Missing required argument `%s`", opt.long_arg);
-            }
+        if (!opt.matched && opt.required) {
+            ccli_fatalf_help(bin, "Missing required argument `%s`", opt.long_arg);
         }
     }
 }
@@ -831,7 +829,7 @@ void ccli__parse_equals(const char *bin, ccli_option *options, char *arg, uint64
     bool matched_arg = false;
     for (size_t opt_search = 0; opt_search < opt_count; opt_search++) {
         ccli_option opt = options[opt_search];
-        if (!(ccli_option_is_global(opt)) && !(opt.cmd_idx == cmd_idx)) {
+        if (!(ccli_option_is_global(opt)) && opt.cmd_idx != cmd_idx) {
             continue;
         }
         if (opt_str[1] == opt.short_arg || ccli__long_opt_eq(opt_str, opt.long_arg)) {
@@ -919,7 +917,7 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
 
         for (size_t opt_search = 0; opt_search < opt_count; opt_search++) {
             ccli_option opt = options[opt_search];
-            if (!(ccli_option_is_global(opt)) && !(opt.cmd_idx == cmd_idx)) {
+            if (!(ccli_option_is_global(opt)) && opt.cmd_idx != cmd_idx) {
                 continue;
             }
             if (is_positional && opt.positional && !opt.matched) {
