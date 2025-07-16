@@ -58,6 +58,16 @@ int main(int argc, char **argv) {
 extern "C" {
 #endif // __cplusplus
 
+#ifdef CCLI_DEBUG
+#if CCLI_DEBUG == 0
+#define ccli__debugf(msg, ...) fprintf(stderr, "[DBG] " msg "\n", ##__VA_ARGS__);
+#else
+#define ccli__debugf(msg, ...) fprintf(stderr, "%s:%d: [DBG] " msg "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#endif // CCLI_DEBUG 1
+#else
+#define ccli__debugf(msg, ...)
+#endif // CCLI_DEBUG
+
 #ifndef CCLI_NORETURN
 #ifdef __cplusplus
 #define CCLI_NORETURN(sig) [[noreturn]] sig
@@ -230,6 +240,7 @@ void ccli__check_unmatched(const char *bin, uint8_t cmd_idx, ccli_option *option
 void ccli__find_help(ccli_command *subcommands, const char *subcommand, ccli_option *options, int argc, char *argv[], ccli_example *examples);
 size_t ccli__run_command(ccli_command *subcommands, int argc, char *argv[]);
 void ccli__parse_equals(const char *bin, ccli_option *options, char *arg, uint64_t cmd_idx);
+ccli_option *ccli_find_option(ccli_option *options, const char *name);
 
 const ccli_option help_opt = {'h', "help", ccli_boolean, false, false, ccli_scope_global(), 0, NULL, CCLI_HELP_DESC, NULL};
 
@@ -293,6 +304,16 @@ CCLI_NORETURN(void ccli_fatalf_help(const char *bin, const char *format, ...)) {
     }
     va_end(argptr);
     exit(1);
+}
+
+ccli_option *ccli_find_option(ccli_option *options, const char *name) {
+    size_t len = ccli__opt_len(options);
+    for (size_t i = 0; i < len; ++i) {
+        if (ccli_streq(name, options[i].long_arg)) {
+            return options + i;
+        }
+    }
+    return NULL;
 }
 
 size_t ccli__opt_len(ccli_option *options) {
@@ -774,10 +795,12 @@ bool ccli__long_opt_eq(const char *argv_opt, const char *long_opt) {
 }
 
 void ccli__check_unmatched(const char *bin, uint8_t cmd_idx, ccli_option *options) {
+    ccli__debugf("checking for unmatched items.");
     size_t len = ccli__opt_len(options);
     for (size_t opt_search = 0; opt_search < len; opt_search++) {
         ccli_option opt = options[opt_search];
         if (!(ccli_option_is_global(opt)) && opt.cmd_idx != cmd_idx) {
+            ccli__debugf("option %s is not relevant", opt.long_arg);
             continue;
         }
         if (!opt.matched && opt.required) {
@@ -886,13 +909,18 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
     }
 
     const char *bin = argv[0];
+    ccli__debugf("validating options");
     ccli__validate_options(options);
     size_t cmd_idx = ccli__run_command(subcommands, argc, argv);
     const char *subcommand = cmd_idx > 1 ? subcommands[cmd_idx - 2].command : NULL;
+    ccli__debugf("subcommand is %s", subcommand == NULL ? "<none>" : subcommand);
     ccli__find_help(subcommands, subcommand, options, argc, argv, examples);
-    size_t opt_count = ccli__opt_len(options);
+    ccli__debugf("found no help command. proceeding with parsing")
+        size_t opt_count = ccli__opt_len(options);
+    ccli__debugf("got %lu options to parse", opt_count);
     for (int argc_idx = 1 + (cmd_idx > 1); argc_idx < argc; argc_idx++) {
         char *arg = argv[argc_idx];
+        ccli__debugf("    matching %s", arg);
 
         bool matched_arg = false;
 
@@ -903,24 +931,30 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
         if (!is_long && short_opt == ccli_short_none) {
             is_positional = true;
         }
+        ccli__debugf("    item is %s", is_positional ? "positional" : (is_long ? "long" : "short"));
 
         if (ccli_streq(arg, "--") || ccli_streq(arg, "-")) {
+            ccli__debugf("found arg terminator. parsing the rest as positionals");
             ccli__parse_remaining_positionals(options, subcommands, subcommand, argc_idx, argc, argv);
             ccli__check_unmatched(bin, cmd_idx, options);
             return cmd_idx == 1 ? NULL : subcommands[cmd_idx - 2].command;
         }
 
         if (ccli_strcontains(arg, '=')) {
-            ccli__parse_equals(bin, options, arg, cmd_idx);
+            ccli__debugf("item contains =. parsing as equals expr")
+                ccli__parse_equals(bin, options, arg, cmd_idx);
             continue;
         }
 
         for (size_t opt_search = 0; opt_search < opt_count; opt_search++) {
             ccli_option opt = options[opt_search];
+            ccli__debugf("        checking if option %s matches", opt.long_arg);
             if (!(ccli_option_is_global(opt)) && opt.cmd_idx != cmd_idx) {
+                ccli__debugf("        option %s is not relevant", opt.long_arg);
                 continue;
             }
             if (is_positional && opt.positional && !opt.matched) {
+                ccli__debugf("        option %s matches for the first positional argument", opt.long_arg);
                 matched_arg = true;
                 options[opt_search].matched = true;
                 switch (opt.kind) {
@@ -955,6 +989,7 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
                     ccli_panic("Unrecognized type of flag encountered!");
                 } break;
                 }
+                break;
             } else if ((is_long && ccli__long_opt_eq(arg, opt.long_arg)) || (short_opt == ccli_short_single && arg[1] == opt.short_arg)) {
                 matched_arg = true;
                 options[opt_search].matched = true;
@@ -1006,8 +1041,10 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
                         ccli_panic("Unrecognized type of flag encountered!");
                     }
                 }
+                break;
             } else if (!is_long && short_opt == ccli_short_multiple) {
                 ccli_fatal(bin, "Multiple shorthand options at once are not yet supported"); // TODO
+                // break;
             }
         }
 
@@ -1021,6 +1058,7 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
     }
 
     ccli__check_unmatched(bin, cmd_idx, options);
+    ccli__debugf("done!");
     return cmd_idx == 1 ? NULL : subcommands[cmd_idx - 2].command;
 }
 #endif // CCLI_IMPLEMENTATION
@@ -1096,6 +1134,7 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
 #define streq ccli_streq
 #define strcontains ccli_strcontains
 #define stridx ccli_stridx
+#define find_option ccli_find_option
 // #define help ccli_help // not good redefine tbh.
 #define parse_opts ccli_parse_opts
 // Do not redefine private apis
