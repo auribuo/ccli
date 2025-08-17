@@ -4,17 +4,25 @@
 
 # Example
 
+#include <stdio.h>                // Needed in this case for the printf below. Not necessary for the library to work
 #define CCLI_IMPLEMENTATION       // Needed for the implementation
 #define CCLI_STRIP_PREFIX         // Optional to remove prefixes. Redefinable macros are not stripped
 #define CCLI_DISALLOW_HEX_NUMBERS // Disallow 0x4f format for numbers
 #define CCLI_DISALLOW_BIN_NUMBERS // Disallow 0b001010 format for numbers
+#define ccli_num int              // Redefine the underlying type for number options
+#define ccli_unum unsigned int    // Redefine the underlying type for unsigned number options
+#define CCLI_DEBUG 1              // Enable debug. #define CCLI_DEBUG 0 for no location reporting
+#define CCLI_NO_SHORT_HELP        // Disable short -h option for the help menu
 #include "ccli.h"
 
 // Just declare your flags here. You can also construct the options array in main if you want
 bool warn = false;
-long timeout = 10;                     // Number expects a 64-bit (un)signed integer. You can redefine the types with `#define ccli_num int` for exaple
+int timeout = 10; // Number expects a 64-bit (un)signed integer by default.
+unsigned int count = 5;
 char iface[CCLI_MAX_STR_LEN] = "eth0"; // String expects a mutable buffer. You could also malloc the string. The max length is still limited by CCLI_MAX_STR_LEN (redefinable)
 bool silent = false;
+char first_name[CCLI_MAX_STR_LEN];
+char last_name[CCLI_MAX_STR_LEN];
 
 // Here you can declare the subcommands
 // The array must be {0} terminated, this macro does that for you
@@ -23,10 +31,13 @@ commands(commands, {"run", "Run it"}, {"debug", "Debug it"});
 // Define here your options. The first parameter is the name of the array
 // The array must be {0} terminated, this macro does that for you
 options(options,
-        option_bool_var(warn, "Enable warnings", false, false, scope_global()),                       // No short option
-        option_int_var_p(timeout, "Set timeout", "sec", false, true, scope_global()),                 // Auto generate short option from var name
-        option_string_p("interface", iface, "Set interface", "name", false, false, scope_global()),   // Given long name with generated short from long
-        option_bool_pc("quiet", 'q', silent, "Enable silent output", false, false, scope_subcmd(0))); // Given long and short name. Scope it to the 0th subcommand (run)
+        ccli_option_string_var_p(first_name, "First name of the user", "fname", true, true, ccli_scope_global()), // Positional arguments
+        ccli_option_string_var_p(last_name, "Last name of the user", "lname", true, true, ccli_scope_global()),   // Same as above
+        ccli_option_bool_var(warn, "Enable warnings", false, false, scope_global()),                              // No short option
+        ccli_option_int_var_p(timeout, "Set timeout", "sec", false, true, scope_global()),                        // Auto generate short option from var name
+        ccli_option_uint_var_p(count, "Set max count", "count", false, false, ccli_scope_root()),                 // Same as above, scope the option to only the root command
+        ccli_option_string_p("interface", iface, "Set interface", "name", false, false, scope_global()),          // Given long name with generated short from long
+        ccli_option_bool_pc("quiet", 'q', silent, "Enable silent output", false, false, scope_subcmd(0)));        // Given long and short name. Scope it to the 0th subcommand (run)
 
 // Define here your examples. The first parameter are the flags added to the invocation and the second a short description.
 // The array must be {0} terminated, this macro does that for you
@@ -37,14 +48,20 @@ examples(examples,
 int main(int argc, char **argv) {
     // This parses the arguments and writes the parsed values into the given pointers and returns the subcommand or null if none was provided
     // The function exits with an error message if something went wrong.
-    // You can control the output stream using CCLI_STREAM
+    // You can control the output stream of the library by #define CCLI_STREAM stdout for example.
     // commands and examples are optional
     const char *subcmd = parse_opts(commands, options, argc, argv, examples);
 
     printf("subcmd = %s\n", subcmd);
+    printf("fname = %s\n", first_name);
+    printf("lname = %s\n", last_name);
     printf("warn (%s)\n", warn ? "true" : "false");
-    printf("timeout (%ld)\n", timeout);
+    printf("timeout (%d)\n", timeout);
+    printf("count (%d)\n", count);
     printf("interface (%s)\n", iface);
+    if (ccli_streq(subcmd, "run")) {
+        printf("quiet (%s)\n", silent ? "true" : "false");
+    }
 }
 */
 #ifndef CCLI_H
@@ -111,7 +128,7 @@ extern "C" {
 #define ccli_option_subcmd_idx(opt) ((opt).cmd_idx - 2)
 
 #define ccli_scope_global() (0)
-#define ccli_scope_root() (1
+#define ccli_scope_root() (1)
 #define ccli_scope_subcmd(x) ((x) + 2)
 
 #define ccli_option_term {0, NULL, ccli_null, 0, 0, 0, 0, NULL, NULL, NULL}
@@ -242,7 +259,11 @@ size_t ccli__run_command(ccli_command *subcommands, int argc, char *argv[]);
 void ccli__parse_equals(const char *bin, ccli_option *options, char *arg, uint64_t cmd_idx);
 ccli_option *ccli_find_option(ccli_option *options, const char *name);
 
+#ifdef CCLI_NO_SHORT_HELP
+const ccli_option help_opt = {0, "help", ccli_boolean, false, false, ccli_scope_global(), 0, NULL, CCLI_HELP_DESC, NULL};
+#else
 const ccli_option help_opt = {'h', "help", ccli_boolean, false, false, ccli_scope_global(), 0, NULL, CCLI_HELP_DESC, NULL};
+#endif // CCLI_NO_SHORT_HELP
 
 #ifdef CCLI_IMPLEMENTATION
 #include <assert.h>
@@ -253,9 +274,9 @@ const ccli_option help_opt = {'h', "help", ccli_boolean, false, false, ccli_scop
 
 CCLI_NORETURN(void ccli_panic_loc(const char *file, int line, const char *msg)) {
     if (msg != NULL) {
-        fprintf(CCLI_STREAM, "%s:%d: cli_panic: %s\n", file, line, msg);
+        fprintf(CCLI_STREAM, "%s:%d: ccli_panic: %s\n", file, line, msg);
     } else {
-        fprintf(CCLI_STREAM, "%s:%d: cli_panic: Program cli_paniced.", file, line);
+        fprintf(CCLI_STREAM, "%s:%d: ccli_panic: Program cli_paniced.", file, line);
     }
     exit(1);
 }
@@ -520,6 +541,15 @@ void ccli__validate_options(ccli_option *options) {
         ccli_option opt = options[i];
         if (opt.long_arg == NULL) {
             ccli_panicf("Invalid option at index %lu. Long option is always required!", i);
+        } else {
+            for (size_t j = 0; j < len; ++j) {
+                ccli_option opt_c = options[j];
+                if (j != i) {
+                    if (ccli_streq(opt.long_arg, opt_c.long_arg) && (opt.cmd_idx == 0 || opt_c.cmd_idx == 0 || opt.cmd_idx == opt_c.cmd_idx)) {
+                        ccli_panicf("Invalid option at index %lu. Option has the same long option as %lu: %s", j, i, opt.long_arg);
+                    }
+                }
+            }
         }
         if (opt.kind != ccli_boolean && !opt.positional && opt.arg_desc == NULL) {
             ccli_panicf("Invalid option %s. If option is not boolean arg_desc is required!", opt.long_arg);
@@ -649,7 +679,11 @@ void ccli_help(ccli_command *subcommands, const char *subcommand, ccli_option *o
     memcpy(padded_long, help_opt.long_arg, strlen(help_opt.long_arg));
     padded_long[max_len] = 0;
 
+#ifndef CCLI_NO_SHORT_HELP
     fprintf(CCLI_STREAM, "\t-%c", help_opt.short_arg);
+#else
+    fprintf(CCLI_STREAM, "\t  ");
+#endif // !CCLI_NO_SHORT_HELP
     fprintf(CCLI_STREAM, " --%s %s\n", padded_long, help_opt.desc);
 
     CCLI_FREE(padded_long);
@@ -815,10 +849,34 @@ void ccli__find_help(ccli_command *subcommands, const char *subcommand, ccli_opt
         if (ccli_streq(arg, "--") || ccli_streq(arg, "-")) {
             return;
         }
-        if (ccli_streq(arg, "--help") || ccli_streq(arg, "-h")) {
+        bool is_long = ccli__is_long_opt(arg);
+        ccli_short_opt_kind short_opt = ccli__short_opt_kind(arg);
+        bool is_positional = false;
+
+        if (!is_long && short_opt == ccli_short_none) {
+            is_positional = true;
+        }
+        if (is_positional) {
+            continue;
+        }
+        if (is_long && ccli_streq(arg, "--help")) {
             ccli_help(subcommands, subcommand, options, argv, examples);
             exit(0);
         }
+#ifndef CCLI_NO_SHORT_HELP
+        if (short_opt == ccli_short_single && ccli_streq(arg, "-h")) {
+            ccli_help(subcommands, subcommand, options, argv, examples);
+            exit(0);
+        }
+        if (short_opt == ccli_short_multiple) {
+            for (char *shorts = arg + 1; *shorts != 0; ++shorts) {
+                if (*shorts == 'h') {
+                    ccli_help(subcommands, subcommand, options, argv, examples);
+                    exit(0);
+                }
+            }
+        }
+#endif // !CCLI_NO_SHORT_HELP
     }
 }
 
@@ -946,6 +1004,43 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
             continue;
         }
 
+        if (short_opt == ccli_short_multiple) {
+            ccli__debugf("    multiple %s", arg);
+            const char *shorts = arg + 1;
+            while (*shorts != 0) {
+                char sh = *shorts;
+                ccli__debugf("        got option %c", sh);
+                bool found = false;
+                for (size_t opt_search = 0; opt_search < opt_count; opt_search++) {
+                    ccli_option opt = options[opt_search];
+                    if (!(ccli_option_is_global(opt)) && opt.cmd_idx != cmd_idx) {
+                        ccli__debugf("            option %s is not relevant", opt.long_arg);
+                        continue;
+                    }
+                    if (opt.short_arg != 0) {
+                        if (opt.short_arg == sh) {
+                            if (opt.kind == ccli_boolean) {
+                                options[opt_search].matched = true;
+                                found = true;
+                                *((bool *)options[opt_search].data) = true;
+                                ccli__debugf("            matched option %s", opt.long_arg);
+                                break;
+                            } else {
+                                ccli_fatalf_help(bin, "Missing argument: Option `%s` requires an argument but none was given", opt.long_arg);
+                            }
+                        }
+                    } else {
+                        ccli__debugf("        option %s has not short variant", opt.long_arg);
+                    }
+                }
+                if (!found) {
+                    ccli_fatalf_help(bin, "Unknown argument `%c` in %s", sh, arg);
+                }
+                shorts++;
+            }
+            continue;
+        }
+
         for (size_t opt_search = 0; opt_search < opt_count; opt_search++) {
             ccli_option opt = options[opt_search];
             ccli__debugf("        checking if option %s matches", opt.long_arg);
@@ -1043,9 +1138,6 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
                     }
                 }
                 break;
-            } else if (!is_long && !opt.positional && short_opt == ccli_short_multiple) {
-                ccli_fatal(bin, "Multiple shorthand options at once are not yet supported"); // TODO
-                // break;
             }
         }
 

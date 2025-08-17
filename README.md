@@ -36,7 +36,7 @@ examples(examples,
 int main(int argc, char **argv) {
     // This parses the arguments and writes the parsed values into the given pointers and returns the subcommand or null if none was provided
     // The function exits with an error message if something went wrong.
-    // You can control the output stream using CCLI_STREAM 
+    // You can control the output stream using CCLI_STREAM
     // commands and examples are optional
     const char *subcmd = parse_opts(commands, options, argc, argv, examples);
 
