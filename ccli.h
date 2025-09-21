@@ -259,12 +259,6 @@ size_t ccli__run_command(ccli_command *subcommands, int argc, char *argv[]);
 void ccli__parse_equals(const char *bin, ccli_option *options, char *arg, uint64_t cmd_idx);
 ccli_option *ccli_find_option(ccli_option *options, const char *name);
 
-#ifdef CCLI_NO_SHORT_HELP
-const ccli_option help_opt;
-#else
-const ccli_option help_opt;
-#endif // CCLI_NO_SHORT_HELP
-
 #ifdef CCLI_IMPLEMENTATION
 #include <assert.h>
 #include <errno.h>
