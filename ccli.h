@@ -260,9 +260,9 @@ void ccli__parse_equals(const char *bin, ccli_option *options, char *arg, uint64
 ccli_option *ccli_find_option(ccli_option *options, const char *name);
 
 #ifdef CCLI_NO_SHORT_HELP
-const ccli_option help_opt = {0, "help", ccli_boolean, false, false, ccli_scope_global(), 0, NULL, CCLI_HELP_DESC, NULL};
+const ccli_option help_opt;
 #else
-const ccli_option help_opt = {'h', "help", ccli_boolean, false, false, ccli_scope_global(), 0, NULL, CCLI_HELP_DESC, NULL};
+const ccli_option help_opt;
 #endif // CCLI_NO_SHORT_HELP
 
 #ifdef CCLI_IMPLEMENTATION
@@ -271,6 +271,13 @@ const ccli_option help_opt = {'h', "help", ccli_boolean, false, false, ccli_scop
 #include <limits.h>
 #include <stdarg.h>
 #include <string.h>
+
+
+#ifdef CCLI_NO_SHORT_HELP
+const ccli_option help_opt = {0, "help", ccli_boolean, false, false, ccli_scope_global(), 0, NULL, CCLI_HELP_DESC, NULL};
+#else
+const ccli_option help_opt = {'h', "help", ccli_boolean, false, false, ccli_scope_global(), 0, NULL, CCLI_HELP_DESC, NULL};
+#endif // CCLI_NO_SHORT_HELP
 
 CCLI_NORETURN(void ccli_panic_loc(const char *file, int line, const char *msg)) {
     if (msg != NULL) {
