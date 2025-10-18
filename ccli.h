@@ -1005,7 +1005,7 @@ const char *ccli_parse_opts(ccli_command *subcommands, ccli_option *options, int
             continue;
         }
 
-        if (short_opt == ccli_short_multiple) {
+        if (!is_long && short_opt == ccli_short_multiple) {
             ccli__debugf("    multiple %s", arg);
             const char *shorts = arg + 1;
             while (*shorts != 0) {
